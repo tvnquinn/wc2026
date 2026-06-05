@@ -143,10 +143,11 @@ export default function PredictClient({
                         </div>
                         <div className="match-row" style={{ border: 'none', padding: 0 }}>
                           <div className="predict-score-row">
-                            <span className="predict-team" style={{ justifyContent: 'flex-end' }}>
-                              <TeamFlag team={match.homeTeam} /> {match.homeTeam}
-                            </span>
-                            <div className="predict-score-controls">
+                            <div className="predict-side predict-side-home">
+                              <span className="predict-team predict-team-home">
+                                <TeamFlag team={match.homeTeam} />
+                                <span className="predict-team-name">{match.homeTeam}</span>
+                              </span>
                               <input 
                                 type="number"
                                 inputMode="numeric"
@@ -158,7 +159,9 @@ export default function PredictClient({
                                 placeholder="-"
                                 aria-label={`${match.homeTeam} score`}
                               />
-                              <span aria-hidden="true">-</span>
+                            </div>
+                            <span className="predict-dash" aria-hidden="true">-</span>
+                            <div className="predict-side predict-side-away">
                               <input 
                                 type="number"
                                 inputMode="numeric"
@@ -170,10 +173,11 @@ export default function PredictClient({
                                 placeholder="-"
                                 aria-label={`${match.awayTeam} score`}
                               />
+                              <span className="predict-team predict-team-away">
+                                <span className="predict-team-name">{match.awayTeam}</span>
+                                <TeamFlag team={match.awayTeam} />
+                              </span>
                             </div>
-                            <span className="predict-team">
-                              {match.awayTeam} <TeamFlag team={match.awayTeam} />
-                            </span>
                           </div>
                         </div>
                       </div>
