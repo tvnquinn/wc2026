@@ -9,7 +9,7 @@ CREATE TABLE "Match" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "homeTeam" TEXT NOT NULL,
     "awayTeam" TEXT NOT NULL,
-    "kickoffTime" DATETIME NOT NULL,
+    "kickoffTime" TIMESTAMP(3) NOT NULL,
     "stage" TEXT NOT NULL,
     "homeScore" INTEGER,
     "awayScore" INTEGER,
