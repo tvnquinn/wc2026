@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { submitAllPredictions, createOrGetUser } from '@/app/actions'
 import { User, Match, Prediction } from '@prisma/client'
-import { getFlag } from '@/lib/flags'
+import TeamFlag from '@/components/TeamFlag'
 
 type PredictState = { [matchId: string]: { homeScore: string, awayScore: string } }
 
@@ -136,9 +136,6 @@ export default function PredictClient({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {stageMatches.map(match => {
                     const isLocked = now >= new Date(match.kickoffTime)
-                    const homeFlag = getFlag(match.homeTeam)
-                    const awayFlag = getFlag(match.awayTeam)
-                    
                     return (
                       <div key={match.id} className="card" style={{ opacity: isLocked ? 0.7 : 1, padding: '1rem' }}>
                          <div suppressHydrationWarning style={{ fontSize: '0.85rem', color: isLocked ? 'var(--danger)' : 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'right' }}>
@@ -146,7 +143,9 @@ export default function PredictClient({
                         </div>
                         <div className="match-row" style={{ border: 'none', padding: 0 }}>
                           <div className="predict-score-row">
-                            <span className="predict-team" style={{ textAlign: 'right' }}>{homeFlag} {match.homeTeam}</span>
+                            <span className="predict-team" style={{ justifyContent: 'flex-end' }}>
+                              <TeamFlag team={match.homeTeam} /> {match.homeTeam}
+                            </span>
                             <div className="predict-score-controls">
                               <input 
                                 type="number"
@@ -172,7 +171,9 @@ export default function PredictClient({
                                 aria-label={`${match.awayTeam} score`}
                               />
                             </div>
-                            <span className="predict-team" style={{ textAlign: 'left' }}>{match.awayTeam} {awayFlag}</span>
+                            <span className="predict-team">
+                              {match.awayTeam} <TeamFlag team={match.awayTeam} />
+                            </span>
                           </div>
                         </div>
                       </div>

@@ -1,79 +1,76 @@
-export function getFlag(team: string): string {
-  const flags: Record<string, string> = {
+export function getCountryCode(team: string): string | null {
+  const codes: Record<string, string> = {
     // Group A
-    'Mexico': '🇲🇽',
-    'South Africa': '🇿🇦',
-    'South Korea': '🇰🇷',
+    'Mexico': 'mx',
+    'South Africa': 'za',
+    'South Korea': 'kr',
+    'Czechia': 'cz',
 
     // Group B
-    'Canada': '🇨🇦',
-    'Qatar': '🇶🇦',
-    'Switzerland': '🇨🇭',
+    'Canada': 'ca',
+    'Qatar': 'qa',
+    'Switzerland': 'ch',
+    'Bosnia and Herzegovina': 'ba',
 
     // Group C
-    'Brazil': '🇧🇷',
-    'Morocco': '🇲🇦',
-    'Haiti': '🇭🇹',
-    'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+    'Brazil': 'br',
+    'Morocco': 'ma',
+    'Haiti': 'ht',
+    'Scotland': 'gb-sct',
 
     // Group D
-    'United States': '🇺🇸',
-    'Paraguay': '🇵🇾',
-    'Australia': '🇦🇺',
+    'United States': 'us',
+    'Paraguay': 'py',
+    'Australia': 'au',
+    'Türkiye': 'tr',
 
     // Group E
-    'Germany': '🇩🇪',
-    'Curacao': '🇨🇼',
-    'Ivory Coast': '🇨🇮',
-    'Ecuador': '🇪🇨',
+    'Germany': 'de',
+    'Curacao': 'cw',
+    'Ivory Coast': 'ci',
+    'Ecuador': 'ec',
 
     // Group F
-    'Netherlands': '🇳🇱',
-    'Japan': '🇯🇵',
-    'Tunisia': '🇹🇳',
+    'Netherlands': 'nl',
+    'Japan': 'jp',
+    'Tunisia': 'tn',
+    'Sweden': 'se',
 
     // Group G
-    'Belgium': '🇧🇪',
-    'Egypt': '🇪🇬',
-    'Iran': '🇮🇷',
-    'New Zealand': '🇳🇿',
+    'Belgium': 'be',
+    'Egypt': 'eg',
+    'Iran': 'ir',
+    'New Zealand': 'nz',
 
     // Group H
-    'Spain': '🇪🇸',
-    'Cape Verde': '🇨🇻',
-    'Saudi Arabia': '🇸🇦',
-    'Uruguay': '🇺🇾',
+    'Spain': 'es',
+    'Cape Verde': 'cv',
+    'Saudi Arabia': 'sa',
+    'Uruguay': 'uy',
 
     // Group I
-    'France': '🇫🇷',
-    'Senegal': '🇸🇳',
-    'Norway': '🇳🇴',
+    'France': 'fr',
+    'Senegal': 'sn',
+    'Norway': 'no',
+    'Iraq': 'iq',
 
     // Group J
-    'Argentina': '🇦🇷',
-    'Algeria': '🇩🇿',
-    'Austria': '🇦🇹',
-    'Jordan': '🇯🇴',
+    'Argentina': 'ar',
+    'Algeria': 'dz',
+    'Austria': 'at',
+    'Jordan': 'jo',
 
     // Group K
-    'Portugal': '🇵🇹',
-    'Uzbekistan': '🇺🇿',
-    'Colombia': '🇨🇴',
+    'Portugal': 'pt',
+    'Uzbekistan': 'uz',
+    'Colombia': 'co',
+    'DR Congo': 'cd',
 
     // Group L
-    'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-    'Croatia': '🇭🇷',
-    'Ghana': '🇬🇭',
-    'Panama': '🇵🇦',
-
-    // Placeholders for playoff / TBD teams
-    'UEFA A': '🇪🇺',
-    'UEFA B': '🇪🇺',
-    'UEFA C': '🇪🇺',
-    'UEFA D': '🇪🇺',
-    'FIFA 1': '🌍',
-    'FIFA 2': '🌍',
-    'TBD': '🏳️',
+    'England': 'gb-eng',
+    'Croatia': 'hr',
+    'Ghana': 'gh',
+    'Panama': 'pa',
   }
-  return flags[team] || '🏳️'
+  return codes[team] ?? null
 }
