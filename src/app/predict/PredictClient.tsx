@@ -120,15 +120,13 @@ export default function PredictClient({
         </div>
       </div>
 
-      {selectedUserId && matches.length > 0 && (
+      {selectedUserId && matches.length > 0 ? (
         <div style={{ position: 'relative' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', position: 'sticky', top: '20px', zIndex: 10 }}>
-             <button className="btn" onClick={handleSaveAll} disabled={loading} style={{ background: success ? 'var(--primary)' : 'var(--accent)', color: success ? '#fff' : '#000', boxShadow: '0 8px 16px rgba(0,0,0,0.5)', border: '2px solid #000' }}>
+          <div className="predict-save-bar">
+             <button type="button" className="btn" onClick={handleSaveAll} disabled={loading} style={{ background: success ? 'var(--primary)' : 'var(--accent)', color: success ? '#fff' : '#000', boxShadow: '0 8px 16px rgba(0,0,0,0.5)', border: '2px solid #000' }}>
                {loading ? 'Saving...' : success ? '✓ Saved Globally!' : '💾 Save All Predictions'}
              </button>
           </div>
-
-          <br/>
 
           {stages.map(stage => {
             const stageMatches = matches.filter(m => m.stage === stage)
@@ -143,32 +141,38 @@ export default function PredictClient({
                     
                     return (
                       <div key={match.id} className="card" style={{ opacity: isLocked ? 0.7 : 1, padding: '1rem' }}>
-                         <div style={{ fontSize: '0.85rem', color: isLocked ? 'var(--danger)' : 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'right' }}>
+                         <div suppressHydrationWarning style={{ fontSize: '0.85rem', color: isLocked ? 'var(--danger)' : 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'right' }}>
                           {isLocked ? '🔒 LOCKED' : new Date(match.kickoffTime).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }) + ', ' + new Date(match.kickoffTime).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true, timeZone: 'America/New_York' }) + ' ET'}
                         </div>
                         <div className="match-row" style={{ border: 'none', padding: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                            <span style={{ flex: 1, textAlign: 'right' }}>{homeFlag} {match.homeTeam}</span>
-                            <input 
-                              type="number" 
-                              className="input score-input" 
-                              value={predictions[match.id]?.homeScore ?? ''}
-                              onChange={e => handleUpdateScore(match.id, 'homeScore', e.target.value)}
-                              disabled={isLocked}
-                              min="0"
-                              placeholder="-"
-                            />
-                            <span>-</span>
-                            <input 
-                              type="number" 
-                              className="input score-input" 
-                              value={predictions[match.id]?.awayScore ?? ''}
-                              onChange={e => handleUpdateScore(match.id, 'awayScore', e.target.value)}
-                              disabled={isLocked}
-                              min="0"
-                              placeholder="-"
-                            />
-                            <span style={{ flex: 1, textAlign: 'left' }}>{match.awayTeam} {awayFlag}</span>
+                          <div className="predict-score-row">
+                            <span className="predict-team" style={{ textAlign: 'right' }}>{homeFlag} {match.homeTeam}</span>
+                            <div className="predict-score-controls">
+                              <input 
+                                type="number"
+                                inputMode="numeric"
+                                className="input score-input" 
+                                value={predictions[match.id]?.homeScore ?? ''}
+                                onChange={e => handleUpdateScore(match.id, 'homeScore', e.target.value)}
+                                disabled={isLocked}
+                                min="0"
+                                placeholder="-"
+                                aria-label={`${match.homeTeam} score`}
+                              />
+                              <span aria-hidden="true">-</span>
+                              <input 
+                                type="number"
+                                inputMode="numeric"
+                                className="input score-input" 
+                                value={predictions[match.id]?.awayScore ?? ''}
+                                onChange={e => handleUpdateScore(match.id, 'awayScore', e.target.value)}
+                                disabled={isLocked}
+                                min="0"
+                                placeholder="-"
+                                aria-label={`${match.awayTeam} score`}
+                              />
+                            </div>
+                            <span className="predict-team" style={{ textAlign: 'left' }}>{match.awayTeam} {awayFlag}</span>
                           </div>
                         </div>
                       </div>
@@ -179,7 +183,14 @@ export default function PredictClient({
             )
           })}
         </div>
-      )}
+      ) : selectedUserId ? (
+        <div className="card" style={{ marginTop: '2rem', textAlign: 'center' }}>
+          <p>No upcoming matches available to predict.</p>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            If you are running the app for the first time, please go to the <a href="/admin" style={{ color: 'var(--accent)' }}>Admin page</a> (password: <code>coco</code>) and click <strong>"Reset & Seed Database"</strong> to seed the match schedule.
+          </p>
+        </div>
+      ) : null}
     </div>
   )
 }

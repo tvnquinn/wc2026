@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -14,9 +14,20 @@ const barlow = Barlow_Condensed({
   variable: "--font-barlow",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "2026 World Cup - Sleepwell Fam",
   description: "Family World Cup Prediction Leaderboard",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Sleepwell WC",
+  },
 };
 
 export default function RootLayout({

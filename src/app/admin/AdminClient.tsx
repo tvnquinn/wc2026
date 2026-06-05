@@ -93,7 +93,7 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
         <div key={match.id} className="card" style={{ border: match.isFinished ? '1px solid var(--primary)' : '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <span style={{ color: 'var(--accent)' }}>{match.stage}</span>
-            <span style={{ fontSize: '0.9rem', color: match.isFinished ? 'var(--primary)' : 'var(--text-muted)' }}>
+            <span suppressHydrationWarning style={{ fontSize: '0.9rem', color: match.isFinished ? 'var(--primary)' : 'var(--text-muted)' }}>
               {match.isFinished ? '✓ Finished' : new Date(match.kickoffTime).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }) + ', ' + new Date(match.kickoffTime).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true, timeZone: 'America/New_York' }) + ' ET'}
             </span>
           </div>
