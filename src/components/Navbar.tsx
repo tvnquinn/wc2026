@@ -10,7 +10,9 @@ export default function Navbar() {
         <div className="navbar-links">
           <Link href="/" className="navbar-link">Leaderboard</Link>
           <Link href="/predict" className="navbar-link">Predict</Link>
-          <Link href="/admin" className="navbar-link">Admin</Link>
+          <Link href="/picks" className="navbar-link">Guesses Table</Link>
+          <Link href="/rules" className="navbar-link">Scoring Rules</Link>
+          <Link href="/admin" className="navbar-link">Enter Results</Link>
         </div>
       </div>
     </nav>

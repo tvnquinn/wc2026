@@ -8,9 +8,10 @@ generator client {
 }
 
 model User {
-  id          String       @id @default(uuid())
-  name        String       @unique
-  predictions Prediction[]
+  id           String       @id @default(uuid())
+  name         String       @unique
+  passwordHash String
+  predictions  Prediction[]
 }
 
 model Match {
@@ -21,6 +22,8 @@ model Match {
   stage             String       // "GROUP", "R32", "R16", "QF", "SF", "THIRD", "FINAL"
   homeScore         Int?
   awayScore         Int?
+  pkHomeScore       Int?
+  pkAwayScore       Int?
   isFinished        Boolean      @default(false)
   nextMatchId       String?
   nextMatchSlot     String?      // "HOME" or "AWAY"
@@ -37,6 +40,8 @@ model Prediction {
   matchId     String
   homeScore   Int
   awayScore   Int
+  pkHomeScore Int?
+  pkAwayScore Int?
   points      Int      @default(0)
 
   @@unique([userId, matchId])

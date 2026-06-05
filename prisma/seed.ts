@@ -166,10 +166,6 @@ async function main() {
   }
 
   console.log(`Successfully seeded ${matchDataList.length} matches from Google Sheets CSV!`)
-
-  // Create default family member
-  await prisma.user.create({ data: { name: 'coco' } })
-  console.log(`Created default user: coco`)
 }
 
 main()

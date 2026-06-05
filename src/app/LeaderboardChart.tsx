@@ -2,7 +2,15 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-export default function LeaderboardChart({ data, lines }: { data: any[], lines: { key: string, color: string }[] }) {
+export default function LeaderboardChart({
+  data,
+  lines,
+  xTicks,
+}: {
+  data: Record<string, string | number>[]
+  lines: { key: string; color: string }[]
+  xTicks: string[]
+}) {
   if (data.length === 0 || lines.length === 0) {
     return (
       <div className="card text-center" style={{ padding: '3rem', opacity: 0.5 }}>
@@ -11,16 +19,29 @@ export default function LeaderboardChart({ data, lines }: { data: any[], lines: 
     )
   }
 
+  const tickSet = new Set(xTicks)
+
   return (
     <div className="card" style={{ height: '400px', width: '100%', marginBottom: '2rem' }}>
-      <h3 style={{ marginBottom: '1rem', color: 'var(--accent)' }}>Score History</h3>
+      <h3 style={{ marginBottom: '1rem', color: 'var(--text)' }}>Score History</h3>
       <ResponsiveContainer width="100%" height="85%">
         <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="name" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)' }} />
-          <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)' }} />
+          <XAxis
+            dataKey="name"
+            stroke="var(--text-muted)"
+            tick={{ fill: 'var(--text-muted)' }}
+            ticks={xTicks}
+            tickFormatter={(value: string) => (tickSet.has(value) ? value : '')}
+          />
+          <YAxis
+            stroke="var(--text-muted)"
+            tick={{ fill: 'var(--text-muted)' }}
+            allowDecimals={false}
+            tickFormatter={(value: number) => String(Math.round(value))}
+          />
           <Tooltip 
-            contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }} 
+            contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border)', color: 'var(--text)' }} 
             itemStyle={{ color: 'var(--text)' }}
           />
           <Legend />

@@ -2,11 +2,27 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
+import {
+  getPkWinnerSide,
+  isKnockoutStage,
+  matchWentToPenalties,
+  PENALTY_BONUS,
+} from '@/lib/penalties'
+import {
+  SESSION_COOKIE,
+  createSessionToken,
+  getSessionMaxAgeSeconds,
+  hashPin,
+  parseSessionToken,
+  validatePin,
+  verifyPin,
+} from '@/lib/auth'
 
-const POINTS = {
+const POINTS: Record<string, { exact: number; correctWinner: number }> = {
   GROUP: { exact: 3, correctWinner: 1 },
   R32: { exact: 6, correctWinner: 2 },
   R16: { exact: 9, correctWinner: 3 },
@@ -16,43 +32,180 @@ const POINTS = {
   FINAL: { exact: 21, correctWinner: 7 },
 }
 
-export async function createOrGetUser(name: string) {
-  const trimmed = name.trim()
-  if (!trimmed) throw new Error("Name cannot be empty")
-  let user = await prisma.user.findUnique({ where: { name: trimmed } })
-  if (!user) {
-    user = await prisma.user.create({ data: { name: trimmed } })
+type PredictionInput = {
+  matchId: string
+  homeScore: number
+  awayScore: number
+  pkHomeScore?: number | null
+  pkAwayScore?: number | null
+}
+
+function computePredictionPoints(
+  stage: string,
+  homeScore: number,
+  awayScore: number,
+  pkHome: number | null,
+  pkAway: number | null,
+  pred: { homeScore: number; awayScore: number; pkHomeScore: number | null; pkAwayScore: number | null }
+): number {
+  const stagePoints = POINTS[stage] || { exact: 0, correctWinner: 0 }
+  const wentToPk = matchWentToPenalties(stage, homeScore, awayScore, pkHome, pkAway)
+
+  const predDiff = pred.homeScore - pred.awayScore
+  const predWinner = predDiff > 0 ? 'HOME' : predDiff < 0 ? 'AWAY' : 'DRAW'
+  const actualDiff = homeScore - awayScore
+  const actualWinner = actualDiff > 0 ? 'HOME' : actualDiff < 0 ? 'AWAY' : 'DRAW'
+
+  if (wentToPk && predWinner === 'DRAW') {
+    if (pred.pkHomeScore == null || pred.pkAwayScore == null) return 0
+    const predPkWinner = getPkWinnerSide(pred.pkHomeScore, pred.pkAwayScore)
+    const actualPkWinner = getPkWinnerSide(pkHome!, pkAway!)
+    if (!predPkWinner || !actualPkWinner || predPkWinner !== actualPkWinner) return 0
+
+    let earned = 0
+    if (pred.homeScore === homeScore && pred.awayScore === awayScore) {
+      earned = stagePoints.exact
+    } else if (predWinner === actualWinner) {
+      earned = stagePoints.correctWinner
+    }
+
+    if (pred.pkHomeScore === pkHome && pred.pkAwayScore === pkAway) {
+      earned += PENALTY_BONUS[stage] || 0
+    }
+    return earned
   }
+
+  if (pred.homeScore === homeScore && pred.awayScore === awayScore) {
+    return stagePoints.exact
+  }
+  if (predWinner === actualWinner) {
+    return stagePoints.correctWinner
+  }
+  return 0
+}
+
+async function setPredictSession(userId: string) {
+  const cookieStore = await cookies()
+  cookieStore.set(SESSION_COOKIE, createSessionToken(userId), {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: getSessionMaxAgeSeconds(),
+  })
+}
+
+async function getAuthenticatedUserId(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get(SESSION_COOKIE)?.value
+  if (!token) return null
+  return parseSessionToken(token)
+}
+
+export async function getPredictSession(): Promise<string | null> {
+  return getAuthenticatedUserId()
+}
+
+export async function clearPredictSession() {
+  const cookieStore = await cookies()
+  cookieStore.delete(SESSION_COOKIE)
+}
+
+export async function createUser(name: string, pin: string) {
+  const trimmed = name.trim()
+  if (!trimmed) throw new Error('Name cannot be empty')
+  if (!validatePin(pin)) throw new Error('PIN must be exactly 4 digits')
+
+  const existing = await prisma.user.findUnique({ where: { name: trimmed } })
+  if (existing) throw new Error('That name is already taken')
+
+  const user = await prisma.user.create({
+    data: {
+      name: trimmed,
+      passwordHash: hashPin(pin),
+    },
+  })
+
+  await setPredictSession(user.id)
   revalidatePath('/predict')
   return user.id
 }
 
-export async function submitAllPredictions(userId: string, predictions: { matchId: string, homeScore: number, awayScore: number }[]) {
+export async function unlockUser(userId: string, pin: string) {
+  if (!validatePin(pin)) throw new Error('PIN must be exactly 4 digits')
+
   const user = await prisma.user.findUnique({ where: { id: userId } })
-  if (!user) throw new Error("User not found")
+  if (!user) throw new Error('User not found')
+  if (!user.passwordHash) {
+    throw new Error('This profile has no PIN set. Please create a new profile with a PIN.')
+  }
+  if (!verifyPin(pin, user.passwordHash)) throw new Error('Incorrect PIN')
+
+  await setPredictSession(user.id)
+  return { success: true as const }
+}
+
+export async function submitAllPredictions(predictions: PredictionInput[]) {
+  const userId = await getAuthenticatedUserId()
+  if (!userId) throw new Error('Enter your PIN to unlock again')
+
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) throw new Error('User not found')
 
   const now = new Date()
 
-  // Process individually to ensure locked matches are protected
   for (const pred of predictions) {
-    if (isNaN(pred.homeScore) || isNaN(pred.awayScore)) continue;
+    if (isNaN(pred.homeScore) || isNaN(pred.awayScore)) continue
 
     const match = await prisma.match.findUnique({ where: { id: pred.matchId } })
-    if (match && now < match.kickoffTime) {
-      await prisma.prediction.upsert({
-        where: {
-          userId_matchId: { userId, matchId: pred.matchId }
-        },
-        update: { homeScore: pred.homeScore, awayScore: pred.awayScore },
-        create: { userId, matchId: pred.matchId, homeScore: pred.homeScore, awayScore: pred.awayScore }
-      })
+    if (!match || match.isFinished || now >= match.kickoffTime) continue
+
+    const isDraw = pred.homeScore === pred.awayScore
+    const knockoutDraw = isKnockoutStage(match.stage) && isDraw
+
+    let pkHomeScore: number | null = null
+    let pkAwayScore: number | null = null
+
+    if (knockoutDraw && pred.pkHomeScore != null && pred.pkAwayScore != null) {
+      if (pred.pkHomeScore === pred.pkAwayScore) {
+        throw new Error(`Invalid PK score for ${match.homeTeam} vs ${match.awayTeam}: PK cannot be tied`)
+      }
+      pkHomeScore = pred.pkHomeScore
+      pkAwayScore = pred.pkAwayScore
     }
+
+    await prisma.prediction.upsert({
+      where: {
+        userId_matchId: { userId, matchId: pred.matchId }
+      },
+      update: {
+        homeScore: pred.homeScore,
+        awayScore: pred.awayScore,
+        pkHomeScore,
+        pkAwayScore,
+      },
+      create: {
+        userId,
+        matchId: pred.matchId,
+        homeScore: pred.homeScore,
+        awayScore: pred.awayScore,
+        pkHomeScore,
+        pkAwayScore,
+      }
+    })
   }
-  
+
   revalidatePath('/predict')
+  revalidatePath('/picks')
 }
 
-export async function setMatchResult(matchId: string, homeScoreStr: string, awayScoreStr: string) {
+export async function setMatchResult(
+  matchId: string,
+  homeScoreStr: string,
+  awayScoreStr: string,
+  pkHomeScoreStr?: string,
+  pkAwayScoreStr?: string
+) {
   const homeScore = parseInt(homeScoreStr, 10)
   const awayScore = parseInt(awayScoreStr, 10)
 
@@ -60,16 +213,51 @@ export async function setMatchResult(matchId: string, homeScoreStr: string, away
     throw new Error("Invalid score")
   }
 
+  const existing = await prisma.match.findUnique({ where: { id: matchId } })
+  if (!existing) throw new Error("Match not found")
+
+  let pkHomeScore: number | null = null
+  let pkAwayScore: number | null = null
+
+  const knockoutTie = isKnockoutStage(existing.stage) && homeScore === awayScore
+
+  if (knockoutTie) {
+    if (!pkHomeScoreStr || !pkAwayScoreStr) {
+      throw new Error("Knockout draw requires penalty shootout scores")
+    }
+    pkHomeScore = parseInt(pkHomeScoreStr, 10)
+    pkAwayScore = parseInt(pkAwayScoreStr, 10)
+    if (isNaN(pkHomeScore) || isNaN(pkAwayScore)) {
+      throw new Error("Invalid penalty score")
+    }
+    if (pkHomeScore === pkAwayScore) {
+      throw new Error("Penalty shootout cannot be tied")
+    }
+  }
+
   const match = await prisma.match.update({
     where: { id: matchId },
-    data: { homeScore, awayScore, isFinished: true }
+    data: {
+      homeScore,
+      awayScore,
+      pkHomeScore: knockoutTie ? pkHomeScore : null,
+      pkAwayScore: knockoutTie ? pkAwayScore : null,
+      isFinished: true,
+    }
   })
 
-  // Bracket Auto-advancement (winner)
-  if (match.nextMatchId && match.nextMatchSlot) {
-    const actualDiff = homeScore - awayScore;
-    const actualWinnerTeam = actualDiff > 0 ? match.homeTeam : match.awayTeam;
+  let actualWinnerTeam: string | null = null
+  let actualLoserTeam: string | null = null
 
+  if (homeScore !== awayScore) {
+    actualWinnerTeam = homeScore > awayScore ? match.homeTeam : match.awayTeam
+    actualLoserTeam = homeScore > awayScore ? match.awayTeam : match.homeTeam
+  } else if (knockoutTie && pkHomeScore != null && pkAwayScore != null) {
+    actualWinnerTeam = pkHomeScore > pkAwayScore ? match.homeTeam : match.awayTeam
+    actualLoserTeam = pkHomeScore > pkAwayScore ? match.awayTeam : match.homeTeam
+  }
+
+  if (actualWinnerTeam && match.nextMatchId && match.nextMatchSlot) {
     if (match.nextMatchSlot === 'HOME') {
       await prisma.match.update({
         where: { id: match.nextMatchId },
@@ -83,11 +271,7 @@ export async function setMatchResult(matchId: string, homeScoreStr: string, away
     }
   }
 
-  // Bracket Auto-advancement (loser → Third Place match)
-  if (match.loserNextMatchId && match.loserNextMatchSlot) {
-    const actualDiff = homeScore - awayScore;
-    const actualLoserTeam = actualDiff > 0 ? match.awayTeam : match.homeTeam;
-
+  if (actualLoserTeam && match.loserNextMatchId && match.loserNextMatchSlot) {
     if (match.loserNextMatchSlot === 'HOME') {
       await prisma.match.update({
         where: { id: match.loserNextMatchId },
@@ -105,33 +289,26 @@ export async function setMatchResult(matchId: string, homeScoreStr: string, away
     where: { matchId: matchId }
   })
 
-  // @ts-ignore
-  const stagePoints = POINTS[match.stage] || { exact: 0, correctWinner: 0 }
-
-  const actualDiff = homeScore - awayScore;
-  const actualWinner = actualDiff > 0 ? 'HOME' : actualDiff < 0 ? 'AWAY' : 'DRAW'
-
   for (const pred of predictions) {
-    let earnedPoints = 0
-    if (pred.homeScore === homeScore && pred.awayScore === awayScore) {
-      earnedPoints = stagePoints.exact
-    } else {
-      const predDiff = pred.homeScore - pred.awayScore
-      const predWinner = predDiff > 0 ? 'HOME' : predDiff < 0 ? 'AWAY' : 'DRAW'
-      if (predWinner === actualWinner) {
-        earnedPoints = stagePoints.correctWinner
-      }
-    }
+    const earnedPoints = computePredictionPoints(
+      match.stage,
+      homeScore,
+      awayScore,
+      pkHomeScore,
+      pkAwayScore,
+      pred
+    )
 
     await prisma.prediction.update({
       where: { id: pred.id },
       data: { points: earnedPoints }
     })
   }
-  
+
   revalidatePath('/')
   revalidatePath('/admin')
   revalidatePath('/predict')
+  revalidatePath('/picks')
 }
 
 // Database Initialization (Seed) Action
@@ -168,7 +345,7 @@ function parseDateStrings(monthDay: string, time: string) {
   const [monStr, dayStr] = monthDay.trim().split(' ')
   const mm = months[monStr] || "06"
   const dd = dayStr.padStart(2, '0')
-  
+
   let [hhmm, ampm] = time.trim().split(' ')
   let [hh, mins] = hhmm.split(':')
   let hInt = parseInt(hh)
@@ -181,18 +358,17 @@ function parseDateStrings(monthDay: string, time: string) {
 
 export async function seedDatabase() {
   try {
-    // Clear existing data
     await prisma.prediction.deleteMany()
     await prisma.match.deleteMany()
     await prisma.user.deleteMany()
 
     const filePath = path.join(process.cwd(), 'matches.csv')
     const csvText = fs.readFileSync(filePath, 'utf8')
-    const rows = parseCSV(csvText).slice(1) // skip header
+    const rows = parseCSV(csvText).slice(1)
 
     const matchDataList: any[] = []
     const matchIdMap = new Map()
-    
+
     for (const row of rows) {
       if (row.length < 5) continue
       const matchNum = row[4].trim()
@@ -203,7 +379,7 @@ export async function seedDatabase() {
     for (const row of rows) {
       if (row.length < 5) continue
       const stageRaw = row[0].trim()
-      const dateStr = row[1].trim() 
+      const dateStr = row[1].trim()
       const team1 = row[2].trim()
       const team2 = row[3].trim()
       const matchNum = row[4].trim()
@@ -215,7 +391,7 @@ export async function seedDatabase() {
       else if (stageRaw.includes('Semifinal')) stage = 'SF'
       else if (stageRaw.toLowerCase().includes('third')) stage = 'THIRD'
       else if (stageRaw === 'Final') stage = 'FINAL'
-      
+
       const parts = dateStr.split(', ')
       let dateObj = new Date()
       if (parts.length >= 2) {
@@ -236,14 +412,11 @@ export async function seedDatabase() {
       })
     }
 
-    // Fix CSV typos
     for (const m of matchDataList) {
       if (m.homeTeam === 'W191') m.homeTeam = 'W101'
     }
 
-    // Link matches
     for (const match of matchDataList) {
-      // Winner links
       if (match.homeTeam.startsWith('W')) {
         const src = matchDataList.find(m => m.matchNum === match.homeTeam.substring(1))
         if (src) { src.nextMatchId = match.id; src.nextMatchSlot = 'HOME'; }
@@ -252,7 +425,6 @@ export async function seedDatabase() {
         const src = matchDataList.find(m => m.matchNum === match.awayTeam.substring(1))
         if (src) { src.nextMatchId = match.id; src.nextMatchSlot = 'AWAY'; }
       }
-      // Loser links (Third place)
       if (match.homeTeam.startsWith('L')) {
         const src = matchDataList.find(m => m.matchNum === match.homeTeam.substring(1))
         if (src) { src.loserNextMatchId = match.id; src.loserNextMatchSlot = 'HOME'; }
@@ -263,7 +435,6 @@ export async function seedDatabase() {
       }
     }
 
-    // Batch create matches (could use createMany on Postgres, but keeping it simple)
     for (const match of matchDataList) {
       await prisma.match.create({
         data: {
@@ -280,12 +451,10 @@ export async function seedDatabase() {
       })
     }
 
-    // Create default user
-    await prisma.user.create({ data: { name: 'coco' } })
-
     revalidatePath('/')
     revalidatePath('/admin')
     revalidatePath('/predict')
+    revalidatePath('/picks')
     return { success: true }
   } catch (error: any) {
     console.error("Seed error:", error)
