@@ -5,7 +5,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-container">
         <Link href="/" className="navbar-brand">
-          🏆 2026 World Cup - Sleepwell Fam ⚽
+          2026 World Cup - Sleepwell Fam ⚽
         </Link>
         <div className="navbar-links">
           <Link href="/" className="navbar-link">Leaderboard</Link>
