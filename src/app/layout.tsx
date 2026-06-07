@@ -21,12 +21,12 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "2026 World Cup - Sleepwell Fam",
-  description: "Family World Cup Prediction Leaderboard",
+  title: "World Cup 2026 Prediction Pool",
+  description: "World Cup 2026 Prediction Pool",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Sleepwell WC",
+    title: "WC 2026 Pool",
   },
 };
 

@@ -1,7 +1,7 @@
 export default function RulesPage() {
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-      <h1>Scoring Rules</h1>
+      <h1>Rules</h1>
 
       <div className="card rules-content" style={{ marginBottom: '1.5rem' }}>
         <h2>Overview</h2>
@@ -16,7 +16,7 @@ export default function RulesPage() {
         <ul>
           <li>Go to <strong>Predict</strong>, select or create your name, and enter scores for each match.</li>
           <li>Predictions <strong>lock at kickoff</strong> — you cannot change a pick after the match starts.</li>
-          <li>You do not need to predict every match; any match you skip stays blank on the <strong>Guesses Table</strong> and earns 0 points.</li>
+          <li>You do not need to predict every match; any match you skip stays blank on the <strong>Predictions</strong> table and earns 0 points.</li>
           <li>Knockout bracket teams may show placeholders (e.g. W73, 1A) until earlier matches are played; those slots fill in automatically when results are entered.</li>
         </ul>
       </div>
@@ -88,8 +88,8 @@ export default function RulesPage() {
         <h2>Pages</h2>
         <ul>
           <li><strong>Leaderboard</strong> — running totals and a score history chart (x-axis by date).</li>
-          <li><strong>Guesses Table</strong> — spreadsheet of everyone&apos;s predicted scores.</li>
-          <li><strong>Enter Results</strong> — admin enters official match scores; updates bracket and points.</li>
+          <li><strong>Predictions</strong> — spreadsheet of everyone&apos;s predicted scores.</li>
+          <li><strong>Admin</strong> — admin enters official match scores; updates bracket and points.</li>
         </ul>
       </div>
     </div>

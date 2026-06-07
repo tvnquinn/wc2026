@@ -12,7 +12,7 @@ export default async function PicksPage() {
 
   return (
     <div>
-      <h1>Guesses Table</h1>
+      <h1>Predictions</h1>
       <p style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
         Everyone&apos;s predicted scores. Blank cells mean no pick yet.
       </p>

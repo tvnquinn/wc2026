@@ -12,6 +12,8 @@ import {
   matchWentToPenalties,
   PENALTY_BONUS,
 } from '@/lib/penalties'
+import { getKnockoutBracketUpdates } from '@/lib/bracket'
+import { updateR32TeamsFromGroupStage } from '@/lib/r32Update'
 import {
   SESSION_COOKIE,
   createSessionToken,
@@ -197,6 +199,7 @@ export async function submitAllPredictions(predictions: PredictionInput[]) {
 
   revalidatePath('/predict')
   revalidatePath('/picks')
+  revalidatePath('/admin')
 }
 
 export async function setMatchResult(
@@ -246,43 +249,30 @@ export async function setMatchResult(
     }
   })
 
-  let actualWinnerTeam: string | null = null
-  let actualLoserTeam: string | null = null
+  const bracketUpdates = getKnockoutBracketUpdates({
+    id: match.id,
+    stage: match.stage,
+    homeTeam: match.homeTeam,
+    awayTeam: match.awayTeam,
+    homeScore,
+    awayScore,
+    pkHomeScore: knockoutTie ? pkHomeScore : null,
+    pkAwayScore: knockoutTie ? pkAwayScore : null,
+    nextMatchId: match.nextMatchId,
+    nextMatchSlot: match.nextMatchSlot,
+    loserNextMatchId: match.loserNextMatchId,
+    loserNextMatchSlot: match.loserNextMatchSlot,
+  })
 
-  if (homeScore !== awayScore) {
-    actualWinnerTeam = homeScore > awayScore ? match.homeTeam : match.awayTeam
-    actualLoserTeam = homeScore > awayScore ? match.awayTeam : match.homeTeam
-  } else if (knockoutTie && pkHomeScore != null && pkAwayScore != null) {
-    actualWinnerTeam = pkHomeScore > pkAwayScore ? match.homeTeam : match.awayTeam
-    actualLoserTeam = pkHomeScore > pkAwayScore ? match.awayTeam : match.homeTeam
+  for (const update of bracketUpdates) {
+    await prisma.match.update({
+      where: { id: update.matchId },
+      data: update.slot === 'HOME' ? { homeTeam: update.team } : { awayTeam: update.team },
+    })
   }
 
-  if (actualWinnerTeam && match.nextMatchId && match.nextMatchSlot) {
-    if (match.nextMatchSlot === 'HOME') {
-      await prisma.match.update({
-        where: { id: match.nextMatchId },
-        data: { homeTeam: actualWinnerTeam }
-      })
-    } else {
-      await prisma.match.update({
-        where: { id: match.nextMatchId },
-        data: { awayTeam: actualWinnerTeam }
-      })
-    }
-  }
-
-  if (actualLoserTeam && match.loserNextMatchId && match.loserNextMatchSlot) {
-    if (match.loserNextMatchSlot === 'HOME') {
-      await prisma.match.update({
-        where: { id: match.loserNextMatchId },
-        data: { homeTeam: actualLoserTeam }
-      })
-    } else {
-      await prisma.match.update({
-        where: { id: match.loserNextMatchId },
-        data: { awayTeam: actualLoserTeam }
-      })
-    }
+  if (match.stage === 'GROUP') {
+    await updateR32TeamsFromGroupStage()
   }
 
   const predictions = await prisma.prediction.findMany({

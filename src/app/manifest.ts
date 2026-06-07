@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: '2026 World Cup - Sleepwell Fam',
-    short_name: 'Sleepwell WC',
-    description: 'Family World Cup Prediction Leaderboard',
+    name: 'World Cup 2026 Prediction Pool',
+    short_name: 'WC 2026 Pool',
+    description: 'World Cup 2026 Prediction Pool',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',

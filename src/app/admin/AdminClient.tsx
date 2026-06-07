@@ -13,7 +13,7 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
   // extremely simple frontend-only auth for family group
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === 'coco') {
+    if (password === 'potty') {
       setAuthenticated(true)
     } else {
       alert('Incorrect admin password')
@@ -36,12 +36,12 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
   if (!authenticated) {
     return (
       <div className="card" style={{ maxWidth: '400px', margin: '4rem auto' }}>
-        <h2>Admin Access</h2>
+        <h2>Login as admin to update real match scores</h2>
         <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <input 
             type="password" 
             className="input" 
-            placeholder="Enter password (hint: coco)" 
+            placeholder="Enter password (hint: potty)" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
