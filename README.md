@@ -2,7 +2,7 @@
 
 Open-source World Cup 2026 prediction platform. Create a private league, share the link, and compete on every match.
 
-**Live:** [sleepwell-wc2026.vercel.app](https://sleepwell-wc2026.vercel.app) (custom domain `wc26pool.vercel.app` optional)
+**Live:** [wc26pool.vercel.app](https://wc26pool.vercel.app) (also [sleepwell-wc2026.vercel.app](https://sleepwell-wc2026.vercel.app))
 
 ## Screenshots
 
