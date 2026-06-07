@@ -1,13 +1,9 @@
 import Link from 'next/link'
 import GlobalHeader from '@/components/GlobalHeader'
-import { getPublicLeagues } from '@/lib/leagueContext'
-import { formatLeagueBrand } from '@/lib/leagueDisplay'
 
 export const dynamic = 'force-dynamic'
 
-export default async function LandingPage() {
-  const leagues = await getPublicLeagues()
-
+export default function LandingPage() {
   return (
     <>
       <GlobalHeader />
@@ -26,32 +22,6 @@ export default async function LandingPage() {
             Create League
           </Link>
         </div>
-
-        {leagues.length > 0 && (
-          <div className="card">
-            <h2 style={{ marginBottom: '1rem' }}>Public leagues</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {leagues.map((league) => (
-                <Link
-                  key={league.slug}
-                  href={`/${league.slug}`}
-                  className="match-row"
-                  style={{ textDecoration: 'none', color: 'inherit', padding: '0.75rem 0' }}
-                >
-                  <div>
-                    <strong>{formatLeagueBrand(league.name)}</strong>
-                    {league.description && (
-                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        {league.description}
-                      </p>
-                    )}
-                  </div>
-                  <span style={{ color: 'var(--primary)' }}>/{league.slug} →</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </>
   )

@@ -33,20 +33,23 @@ export async function ensureDefaultLeague() {
         slug,
         name: hostLeagueName(),
         adminPasswordHash: adminHash,
-        isPublic: true,
+        isPublic: false,
         useGlobalResults: true,
       },
     })
     return league
   }
 
-  const updates: { adminPasswordHash?: string; name?: string } = {}
+  const updates: { adminPasswordHash?: string; name?: string; isPublic?: boolean } = {}
 
   if (league.adminPasswordHash === PLACEHOLDER_HASH) {
     updates.adminPasswordHash = adminHash
   }
   if (LEGACY_HOST_LEAGUE_NAMES.has(league.name)) {
     updates.name = hostLeagueName()
+  }
+  if (league.isPublic) {
+    updates.isPublic = false
   }
 
   if (Object.keys(updates).length > 0) {
