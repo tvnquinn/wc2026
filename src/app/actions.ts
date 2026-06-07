@@ -21,19 +21,17 @@ import {
   verifyPin,
   verifySecret,
 } from '@/lib/auth'
-import {
-  isScoredForLeague,
-  resolveEffectiveResult,
-  type MatchResultFields,
-} from '@/lib/effectiveResults'
+import { isScoredForLeague } from '@/lib/effectiveResults'
 import {
   isGlobalScorerLeague,
+  requireGlobalScorerLeague,
   validateAdminPassword,
   validateLeagueName,
   validateSlug,
+  validateUserName,
 } from '@/lib/league'
 import { getLeagueBySlug } from '@/lib/leagueContext'
-import { computePredictionPoints } from '@/lib/scoring'
+import { recalculatePointsForMatch } from '@/lib/recalculatePoints'
 import { seedGlobalMatches } from '@/lib/seedMatches'
 
 type PredictionInput = {
@@ -91,8 +89,9 @@ export async function clearPredictSession() {
 
 export async function createUser(leagueSlug: string, name: string, pin: string) {
   const league = await getLeagueBySlug(leagueSlug)
+  const nameError = validateUserName(name)
+  if (nameError) throw new Error(nameError)
   const trimmed = name.trim()
-  if (!trimmed) throw new Error('Name cannot be empty')
   if (!validatePin(pin)) throw new Error('PIN must be exactly 4 digits')
 
   const existing = await prisma.user.findUnique({
@@ -241,71 +240,6 @@ export async function getAdminSessionLeagueId(): Promise<string | null> {
   const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value
   if (!token) return null
   return parseAdminSessionToken(token)?.leagueId ?? null
-}
-
-async function recalculatePointsForMatch(matchId: string, stage: string) {
-  const match = await prisma.match.findUnique({ where: { id: matchId } })
-  if (!match) return
-
-  const predictions = await prisma.prediction.findMany({
-    where: { matchId },
-    include: { user: true },
-  })
-  if (predictions.length === 0) return
-
-  const leagueIds = [...new Set(predictions.map((p) => p.user.leagueId))]
-  const [leagues, overrides] = await Promise.all([
-    prisma.league.findMany({ where: { id: { in: leagueIds } } }),
-    prisma.leagueResultOverride.findMany({
-      where: { matchId, leagueId: { in: leagueIds } },
-    }),
-  ])
-
-  const globalResult: MatchResultFields = {
-    homeScore: match.homeScore,
-    awayScore: match.awayScore,
-    pkHomeScore: match.pkHomeScore,
-    pkAwayScore: match.pkAwayScore,
-    isFinished: match.isFinished,
-  }
-
-  for (const pred of predictions) {
-    const league = leagues.find((l) => l.id === pred.user.leagueId)
-    if (!league) continue
-
-    const override = overrides.find((o) => o.leagueId === league.id)
-    const effective = resolveEffectiveResult({
-      global: globalResult,
-      override: override
-        ? {
-            homeScore: override.homeScore,
-            awayScore: override.awayScore,
-            pkHomeScore: override.pkHomeScore,
-            pkAwayScore: override.pkAwayScore,
-            isFinished: override.isFinished,
-          }
-        : null,
-    })
-
-    if (!effective.isFinished || effective.homeScore == null || effective.awayScore == null) {
-      await prisma.prediction.update({ where: { id: pred.id }, data: { points: 0 } })
-      continue
-    }
-
-    const earnedPoints = computePredictionPoints(
-      stage,
-      effective.homeScore,
-      effective.awayScore,
-      effective.pkHomeScore,
-      effective.pkAwayScore,
-      pred
-    )
-
-    await prisma.prediction.update({
-      where: { id: pred.id },
-      data: { points: earnedPoints },
-    })
-  }
 }
 
 export async function setMatchResult(
@@ -460,9 +394,7 @@ export async function resetLeague(leagueSlug: string) {
 export async function clearAllMatchResults(leagueSlug: string) {
   const league = await getLeagueBySlug(leagueSlug)
   await requireAdminSession(league.id)
-  if (!isGlobalScorerLeague(league.slug)) {
-    throw new Error('The global scoreboard can only be cleared from the host league')
-  }
+  requireGlobalScorerLeague(league.slug)
 
   await prisma.$transaction([
     prisma.match.updateMany({
@@ -490,9 +422,7 @@ export async function clearAllMatchResults(leagueSlug: string) {
 export async function seedDatabase(leagueSlug: string) {
   const league = await getLeagueBySlug(leagueSlug)
   await requireAdminSession(league.id)
-  if (!isGlobalScorerLeague(league.slug)) {
-    throw new Error('The global match schedule can only be seeded from the host league')
-  }
+  requireGlobalScorerLeague(league.slug)
 
   try {
     const result = await seedGlobalMatches()

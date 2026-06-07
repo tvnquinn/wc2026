@@ -119,13 +119,33 @@ For environments with direct database access:
 DATABASE_URL=... npx tsx scripts/clear-match-results.ts
 ```
 
+## Match schedule (`matches.csv`)
+
+The repo-root **`matches.csv`** is the source of truth for all 104 matches (stage, teams, kickoff, bracket links). Host-league admin **Seed Match Schedule** loads this file into the database when empty.
+
+Detect drift between CSV and DB:
+
+```bash
+DATABASE_URL=... npx tsx scripts/diff-match-schedule.ts
+```
+
+Knockout team names may differ from CSV placeholders after results are entered — the script flags count and team-name mismatches by `matchNum`.
+
 ## Scripts
 
 ```bash
-npm run dev      # development server
-npm test         # vitest unit tests (39 tests)
-npm run build    # prisma migrate deploy + next build (production)
+npm run dev        # development server
+npm test           # vitest unit tests
+npm run typecheck  # TypeScript check
+npm run build      # prisma migrate deploy + next build (production)
 ```
+
+CI runs `typecheck` + `vitest` on every push/PR (see `.github/workflows/ci.yml`).
+
+### Runtime
+
+- **Node.js 20+** (`engines` in `package.json`)
+- **Next.js 16** — this project pins Next 16.x (App Router); not the older v14/v15 docs tree
 
 ## Screenshots
 

@@ -1,13 +1,13 @@
 import { prisma } from '@/lib/prisma'
 import { hashSecret } from '@/lib/auth'
-import { GLOBAL_SCORER_SLUG } from '@/lib/league'
+import { resolveHostLeagueSlug } from '@/lib/league'
 
 const DEFAULT_LEAGUE_ID = '00000000-0000-0000-0000-000000000001'
 const PLACEHOLDER_HASH = 'pending-migration-set-on-first-boot'
 const LEGACY_HOST_LEAGUE_NAMES = new Set(['Sleepwell Family Pool', 'Official Pool'])
 
 function hostLeagueSlug(): string {
-  return process.env.HOST_LEAGUE_SLUG?.trim().toLowerCase() || GLOBAL_SCORER_SLUG
+  return resolveHostLeagueSlug()
 }
 
 function hostLeagueName(): string {
@@ -27,17 +27,27 @@ export async function ensureDefaultLeague() {
   const adminHash = hashSecret(hostAdminPassword())
 
   if (!league) {
-    league = await prisma.league.create({
-      data: {
-        id: DEFAULT_LEAGUE_ID,
-        slug,
-        name: hostLeagueName(),
-        adminPasswordHash: adminHash,
-        isPublic: false,
-        useGlobalResults: true,
-      },
-    })
-    return league
+    try {
+      league = await prisma.league.create({
+        data: {
+          id: DEFAULT_LEAGUE_ID,
+          slug,
+          name: hostLeagueName(),
+          adminPasswordHash: adminHash,
+          isPublic: false,
+          useGlobalResults: true,
+        },
+      })
+      return league
+    } catch (error: unknown) {
+      const code =
+        error && typeof error === 'object' && 'code' in error
+          ? (error as { code: string }).code
+          : null
+      if (code !== 'P2002') throw error
+      league = await prisma.league.findUnique({ where: { slug } })
+      if (!league) throw error
+    }
   }
 
   const updates: { adminPasswordHash?: string; name?: string; isPublic?: boolean } = {}

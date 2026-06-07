@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   isGlobalScorerLeague,
+  requireGlobalScorerLeague,
+  resolveHostLeagueSlug,
   validateAdminPassword,
   validateLeagueName,
   validateSlug,
+  validateUserName,
 } from './league'
 
 describe('isGlobalScorerLeague', () => {
@@ -31,7 +34,37 @@ describe('validateSlug', () => {
 describe('validateLeagueName', () => {
   it('requires a name', () => {
     expect(validateLeagueName('  ')).not.toBeNull()
-    expect(validateLeagueName('Family Pool')).toBeNull()
+    expect(validateLeagueName('Office Pool')).toBeNull()
+  })
+})
+
+describe('resolveHostLeagueSlug', () => {
+  it('defaults to the global scorer slug', () => {
+    expect(resolveHostLeagueSlug()).toBe('sleepwell')
+  })
+})
+
+describe('requireGlobalScorerLeague', () => {
+  it('allows the host league slug', () => {
+    expect(() => requireGlobalScorerLeague('sleepwell')).not.toThrow()
+  })
+
+  it('rejects non-host leagues', () => {
+    expect(() => requireGlobalScorerLeague('office-pool')).toThrow(/global host league/)
+  })
+})
+
+describe('validateUserName', () => {
+  it('rejects empty names', () => {
+    expect(validateUserName('   ')).not.toBeNull()
+  })
+
+  it('rejects names over 40 characters', () => {
+    expect(validateUserName('a'.repeat(41))).not.toBeNull()
+  })
+
+  it('accepts normal names', () => {
+    expect(validateUserName('Alex')).toBeNull()
   })
 })
 

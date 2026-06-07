@@ -76,16 +76,29 @@ export default function PredictClient({
       return
     }
     const userPreds = allPredictions.filter(p => p.userId === selectedUserId)
-    const state: PredictState = {}
-    for (const p of userPreds) {
-      state[p.matchId] = {
-        homeScore: p.homeScore.toString(),
-        awayScore: p.awayScore.toString(),
-        pkHomeScore: p.pkHomeScore?.toString() ?? '',
-        pkAwayScore: p.pkAwayScore?.toString() ?? '',
+    setPredictions((prev) => {
+      const state: PredictState = {}
+      for (const p of userPreds) {
+        state[p.matchId] = {
+          homeScore: p.homeScore.toString(),
+          awayScore: p.awayScore.toString(),
+          pkHomeScore: p.pkHomeScore?.toString() ?? '',
+          pkAwayScore: p.pkAwayScore?.toString() ?? '',
+        }
       }
-    }
-    setPredictions(state)
+      // Keep in-progress edits when the server revalidates after createUser / save.
+      for (const [matchId, local] of Object.entries(prev)) {
+        const hasLocal =
+          local.homeScore !== '' ||
+          local.awayScore !== '' ||
+          local.pkHomeScore !== '' ||
+          local.pkAwayScore !== ''
+        if (hasLocal) {
+          state[matchId] = local
+        }
+      }
+      return state
+    })
   }, [selectedUserId, isUnlocked, allPredictions])
 
   const handleSelectUser = async (userId: string) => {

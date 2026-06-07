@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # next.js
 /.next/
@@ -44,6 +48,9 @@ next-env.d.ts
 
 # local sqlite dev database
 /prisma/dev.db
+/prisma/e2e.db
+/prisma/prisma/
+/prisma/schema.postgres.prisma
 /prisma/prisma/
 .env*.local
 

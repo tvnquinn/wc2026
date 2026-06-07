@@ -2,6 +2,9 @@
   "name": "world-cup-predictor",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma migrate deploy && next build",
@@ -10,6 +13,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "tsx scripts/run-e2e.ts",
+    "test:e2e:install": "playwright install chromium",
+    "typecheck": "tsc --noEmit",
     "db:local": "prisma db push --accept-data-loss && prisma generate",
     "postinstall": "prisma generate"
   },
@@ -26,7 +32,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
+    "@playwright/test": "^1.51.1",
     "eslint-config-next": "16.2.4",
+    "playwright": "^1.51.1",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",

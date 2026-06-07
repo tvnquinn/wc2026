@@ -1,3 +1,7 @@
+/**
+ * Shared result shape for `Match` (global) and `LeagueResultOverride`.
+ * Keep these fields in sync when changing either schema.
+ */
 export type MatchResultFields = {
   homeScore: number | null
   awayScore: number | null
