@@ -23,6 +23,50 @@ The goal is a pool that stays fun for casual and competitive players alike — e
 - **Per-league players & predictions** — each league has its own participants, PINs, and leaderboard.
 - **Hybrid results** — one canonical World Cup scoreboard drives default scoring; leagues can optionally override individual match results.
 
+## Rules
+
+Each participant predicts the score of every match before kickoff. After the real result is entered, points are awarded automatically. Highest total wins.
+
+### Making predictions
+
+- Go to **Predict**, select or create your name, and enter scores for each match.
+- Predictions **lock at kickoff** — you cannot change a pick after the match starts.
+- You do not need to predict every match; any match you skip stays blank on the **Predictions** table and earns 0 points.
+- Knockout bracket teams may show placeholders (e.g. W73, 1A) until earlier matches are played; those slots fill in automatically when results are entered.
+
+### Regulation-time scoring
+
+For each match, you earn **either** the exact-score bonus **or** the correct-outcome bonus — not both.
+
+| Stage | Exact score | Correct winner or draw |
+|-------|-------------|------------------------|
+| Group stage | 3 pts | 1 pt |
+| Round of 32 | 6 pts | 2 pts |
+| Round of 16 | 9 pts | 3 pts |
+| Quarter-final | 12 pts | 4 pts |
+| Semi-final | 15 pts | 5 pts |
+| Third-place match | 15 pts | 5 pts |
+| Final | 21 pts | 7 pts |
+
+- **Exact score** — your predicted home and away goals match the official result after 90 minutes (plus stoppage time) exactly.
+- **Correct outcome** — you got the result right (home win, away win, or draw) but not the exact score.
+- **Wrong outcome** — 0 points.
+
+### Knockout penalty predictions (Round of 32 and later)
+
+- Group-stage matches cannot have penalty predictions.
+- If you predict the match will **end in a draw**, you may also enter a predicted **penalty shootout score** (e.g. home 5, away 3).
+- You **cannot** enter a penalty prediction unless your regulation score is a draw.
+- Your penalty pick implies which team you think **advances** (wins the shootout).
+
+| Round | Penalty bonus |
+|-------|---------------|
+| Round of 32 | 4 pts |
+| Round of 16 | 6 pts |
+| Quarter-final | 8 pts |
+| Semi-final / Third-place | 10 pts |
+| Final | 14 pts |
+
 ## Routes
 
 | Path | Purpose |
