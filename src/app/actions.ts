@@ -457,6 +457,36 @@ export async function resetLeague(leagueSlug: string) {
   return { success: true as const }
 }
 
+export async function clearAllMatchResults(leagueSlug: string) {
+  const league = await getLeagueBySlug(leagueSlug)
+  await requireAdminSession(league.id)
+  if (!isGlobalScorerLeague(league.slug)) {
+    throw new Error('The global scoreboard can only be cleared from the host league')
+  }
+
+  await prisma.$transaction([
+    prisma.match.updateMany({
+      data: {
+        homeScore: null,
+        awayScore: null,
+        pkHomeScore: null,
+        pkAwayScore: null,
+        isFinished: false,
+      },
+    }),
+    prisma.leagueResultOverride.deleteMany(),
+    prisma.prediction.updateMany({ data: { points: 0 } }),
+  ])
+
+  const allLeagues = await prisma.league.findMany({ select: { slug: true } })
+  for (const l of allLeagues) {
+    revalidateLeague(l.slug)
+  }
+  revalidatePath('/')
+
+  return { success: true as const }
+}
+
 export async function seedDatabase(leagueSlug: string) {
   const league = await getLeagueBySlug(leagueSlug)
   await requireAdminSession(league.id)

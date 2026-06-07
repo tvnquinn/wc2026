@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { loginLeagueAdmin, resetLeague, seedDatabase, setMatchResult } from '@/app/actions'
+import {
+  clearAllMatchResults,
+  loginLeagueAdmin,
+  resetLeague,
+  seedDatabase,
+  setMatchResult,
+} from '@/app/actions'
 import { LeagueResultOverride, Match } from '@prisma/client'
 import { isKnockoutStage, isRegulationDraw } from '@/lib/penalties'
 import AdminMatchRow, { type AdminScoreState } from './AdminMatchRow'
@@ -47,6 +53,7 @@ export default function AdminClient({
   const [authenticated, setAuthenticated] = useState(initialAuthenticated)
   const [isSeeding, setIsSeeding] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -92,6 +99,27 @@ export default function AdminClient({
       window.location.reload()
     } else {
       alert('Error seeding database: ' + res.error)
+    }
+  }
+
+  const handleClearResults = async () => {
+    if (
+      !confirm(
+        'Clear every match result globally? Predictions stay, but all points reset to 0 until results are re-entered.'
+      )
+    ) {
+      return
+    }
+    setIsClearing(true)
+    try {
+      await clearAllMatchResults(leagueSlug)
+      alert('All match results cleared.')
+      window.location.reload()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Clear failed'
+      alert(message)
+    } finally {
+      setIsClearing(false)
     }
   }
 
@@ -188,9 +216,19 @@ export default function AdminClient({
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           {isGlobalScorer && (
-            <button onClick={handleSeed} className="btn" disabled={isSeeding}>
-              {isSeeding ? 'Seeding...' : 'Seed Match Schedule'}
-            </button>
+            <>
+              <button onClick={handleSeed} className="btn" disabled={isSeeding}>
+                {isSeeding ? 'Seeding...' : 'Seed Match Schedule'}
+              </button>
+              <button
+                onClick={handleClearResults}
+                className="btn"
+                disabled={isClearing}
+                style={{ background: 'var(--text-muted)' }}
+              >
+                {isClearing ? 'Clearing...' : 'Clear All Results'}
+              </button>
+            </>
           )}
           <button
             onClick={handleResetLeague}
