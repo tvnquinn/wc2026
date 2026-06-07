@@ -1,22 +1,16 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import GlobalHeader from '@/components/GlobalHeader'
 import { getPublicLeagues } from '@/lib/leagueContext'
 import { formatLeagueBrand } from '@/lib/leagueDisplay'
-import { hostLeagueSlugForDeploy, isHostOnlyDeploy } from '@/lib/deployMode'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LandingPage() {
-  if (isHostOnlyDeploy()) {
-    redirect(`/${hostLeagueSlugForDeploy()}`)
-  }
-
   const leagues = await getPublicLeagues()
 
   return (
     <>
-      <GlobalHeader showCreateLeague />
+      <GlobalHeader />
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 1rem' }}>
         <h1 style={{ textAlign: 'center', marginTop: '2rem' }}>World Cup 2026 Prediction Pool</h1>
         <p style={{ textAlign: 'center', marginBottom: '2rem', color: 'var(--text-muted)' }}>

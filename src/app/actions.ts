@@ -34,7 +34,6 @@ import {
 } from '@/lib/league'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { computePredictionPoints } from '@/lib/scoring'
-import { isHostOnlyDeploy } from '@/lib/deployMode'
 import { seedGlobalMatches } from '@/lib/seedMatches'
 
 type PredictionInput = {
@@ -416,10 +415,6 @@ export async function createLeague(
   name: string,
   adminPassword: string
 ) {
-  if (isHostOnlyDeploy()) {
-    throw new Error('League creation is disabled on this deployment')
-  }
-
   const normalizedSlug = slug.trim().toLowerCase()
   const slugError = validateSlug(normalizedSlug)
   if (slugError) throw new Error(slugError)
