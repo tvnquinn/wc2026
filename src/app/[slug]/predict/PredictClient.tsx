@@ -386,7 +386,9 @@ export default function PredictClient({
         <div className="card" style={{ marginTop: '2rem', textAlign: 'center' }}>
           <p>No matches in the schedule.</p>
           <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            If you are running the app for the first time, please go to the <a href={`/${leagueSlug}/admin`} style={{ color: 'var(--text)' }}>Admin page</a> and click <strong>&quot;Seed Match Schedule&quot;</strong> to load the 104 matches.
+            The global match schedule has not been loaded yet. An operator must run{' '}
+            <code style={{ fontSize: '0.85rem' }}>npx tsx scripts/seed-schedule.ts</code> against
+            this database.
           </p>
         </div>
       ) : null}

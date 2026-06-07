@@ -17,13 +17,13 @@ Conventions for humans and AI assistants working in this repo.
 | `src/app/actions.ts` | All `'use server'` mutations |
 | `src/lib/` | Pure logic, scoring, bracket, auth helpers, tests |
 | `matches.csv` | Source of truth for the 104-match schedule (see README) |
-| `scripts/` | Ops CLIs (seed demo, clear results, screenshot capture, schedule diff) |
+| `scripts/` | Ops CLIs (`seed-schedule`, seed demo, clear results, E2E, schedule diff) |
 | `prisma/migrations/` | Postgres migrations; run via `prisma migrate deploy` on build |
 
 ## Privilege model
 
 - **League admin** — session cookie scoped to one `leagueId`; can reset that league, enter results (overrides for non-host leagues).
-- **Global / host league admin** — slug from `HOST_LEAGUE_SLUG` or `GLOBAL_SCORER_SLUG` in `src/lib/league.ts`; only this league can seed the schedule, write canonical `Match` scores, or **Clear All Results**.
+- **Global / host league admin** — slug from `HOST_LEAGUE_SLUG` or `GLOBAL_SCORER_SLUG` in `src/lib/league.ts`; only this league can write canonical `Match` scores or **Clear All Results**. Schedule seeding is CLI-only (`scripts/seed-schedule.ts`).
 
 Do not expose global operations to non-host league admins.
 
@@ -41,14 +41,16 @@ Optional: `HOST_LEAGUE_SLUG`, `HOST_LEAGUE_NAME`, `HOST_LEAGUE_ADMIN_PASSWORD`
 ```bash
 npm run dev          # local Next dev server
 npm test             # vitest
+npm run test:e2e     # Playwright (via scripts/run-e2e.ts)
 npm run typecheck    # tsc --noEmit
 npm run build        # migrate deploy + production build
+npm run seed:schedule  # load matches.csv (idempotent)
 ```
 
 ## When changing scoring or results
 
 1. Update `src/lib/scoring.ts` and tests
-2. `recalculatePointsForMatch` in `src/lib/recalculatePoints.ts` must run after any result write
+2. `recalculatePointsForMatch` in `src/lib/recalculatePoints.ts` must run after any result write — `Prediction.points` is denormalized; a missed recalc silently skews the leaderboard
 3. `LeagueResultOverride` fields must stay aligned with `MatchResultFields` in `src/lib/effectiveResults.ts`
 
 ## Do not

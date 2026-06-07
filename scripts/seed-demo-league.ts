@@ -171,7 +171,7 @@ async function recalculateDemoLeaguePoints(leagueId: string) {
 async function main() {
   const matchCount = await prisma.match.count()
   if (matchCount === 0) {
-    throw new Error('No matches in DB — seed the global schedule from sleepwell admin first.')
+    throw new Error('No matches in DB — run: npx tsx scripts/seed-schedule.ts')
   }
 
   let league = await prisma.league.findUnique({ where: { slug: DEMO_SLUG } })

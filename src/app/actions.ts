@@ -419,19 +419,3 @@ export async function clearAllMatchResults(leagueSlug: string) {
   return { success: true as const }
 }
 
-export async function seedDatabase(leagueSlug: string) {
-  const league = await getLeagueBySlug(leagueSlug)
-  await requireAdminSession(league.id)
-  requireGlobalScorerLeague(league.slug)
-
-  try {
-    const result = await seedGlobalMatches()
-    revalidatePath('/')
-    revalidateLeague(league.slug)
-    return { success: true as const, skipped: result.skipped }
-  } catch (error: unknown) {
-    console.error('Seed error:', error)
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    return { success: false as const, error: message }
-  }
-}

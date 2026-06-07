@@ -7,7 +7,6 @@ import {
   clearAllMatchResults,
   loginLeagueAdmin,
   resetLeague,
-  seedDatabase,
   setMatchResult,
 } from '@/app/actions'
 import { LeagueResultOverride, Match } from '@prisma/client'
@@ -51,7 +50,6 @@ export default function AdminClient({
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [authenticated, setAuthenticated] = useState(initialAuthenticated)
-  const [isSeeding, setIsSeeding] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -86,19 +84,6 @@ export default function AdminClient({
       setAuthenticated(true)
     } catch {
       alert('Incorrect admin password')
-    }
-  }
-
-  const handleSeed = async () => {
-    if (!confirm('Seed the global 104-match schedule? This only runs if no matches exist yet.')) return
-    setIsSeeding(true)
-    const res = await seedDatabase(leagueSlug)
-    setIsSeeding(false)
-    if (res.success) {
-      alert(res.skipped ? 'Matches already seeded.' : 'Match schedule seeded successfully!')
-      window.location.reload()
-    } else {
-      alert('Error seeding database: ' + res.error)
     }
   }
 
@@ -216,19 +201,14 @@ export default function AdminClient({
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           {isGlobalScorer && (
-            <>
-              <button onClick={handleSeed} className="btn" disabled={isSeeding}>
-                {isSeeding ? 'Seeding...' : 'Seed Match Schedule'}
-              </button>
-              <button
-                onClick={handleClearResults}
-                className="btn"
-                disabled={isClearing}
-                style={{ background: 'var(--text-muted)' }}
-              >
-                {isClearing ? 'Clearing...' : 'Clear All Results'}
-              </button>
-            </>
+            <button
+              onClick={handleClearResults}
+              className="btn"
+              disabled={isClearing}
+              style={{ background: 'var(--text-muted)' }}
+            >
+              {isClearing ? 'Clearing...' : 'Clear All Results'}
+            </button>
           )}
           <button
             onClick={handleResetLeague}

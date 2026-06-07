@@ -2,7 +2,10 @@ import { prisma } from '@/lib/prisma'
 import { resolveEffectiveResult, type MatchResultFields } from '@/lib/effectiveResults'
 import { computePredictionPoints } from '@/lib/scoring'
 
-/** Recompute stored prediction.points for every league after a match result changes. */
+/**
+ * Recompute denormalized prediction.points for every league after a match result changes.
+ * Must be called on every result write — leaderboard totals read stored points, not live scoring.
+ */
 export async function recalculatePointsForMatch(matchId: string, stage: string) {
   const match = await prisma.match.findUnique({ where: { id: matchId } })
   if (!match) return

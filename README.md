@@ -107,7 +107,13 @@ npm run dev         # http://localhost:3000
 
 ### First-time match seed
 
-A host-league admin must seed the global 104-match schedule once: open `/{host-slug}/admin`, log in, and click **Seed Match Schedule**. Match results start blank until entered.
+Load the global 104-match schedule once via CLI (not exposed in the admin UI):
+
+```bash
+DATABASE_URL=... npx tsx scripts/seed-schedule.ts
+```
+
+Match results start blank until entered in the host-league admin.
 
 ### Clear all results (ops)
 
@@ -121,7 +127,7 @@ DATABASE_URL=... npx tsx scripts/clear-match-results.ts
 
 ## Match schedule (`matches.csv`)
 
-The repo-root **`matches.csv`** is the source of truth for all 104 matches (stage, teams, kickoff, bracket links). Host-league admin **Seed Match Schedule** loads this file into the database when empty.
+The repo-root **`matches.csv`** is the source of truth for all 104 matches (stage, teams, kickoff, bracket links). `scripts/seed-schedule.ts` loads this file into the database when empty.
 
 Detect drift between CSV and DB:
 
@@ -136,11 +142,13 @@ Knockout team names may differ from CSV placeholders after results are entered â
 ```bash
 npm run dev        # development server
 npm test           # vitest unit tests
+npm run test:e2e   # Playwright E2E (isolated SQLite DB)
 npm run typecheck  # TypeScript check
 npm run build      # prisma migrate deploy + next build (production)
+npm run seed:schedule  # load matches.csv into DATABASE_URL (idempotent)
 ```
 
-CI runs `typecheck` + `vitest` on every push/PR (see `.github/workflows/ci.yml`).
+CI runs `typecheck`, `vitest`, and Playwright E2E on every push/PR (see `.github/workflows/ci.yml`).
 
 ### Runtime
 
