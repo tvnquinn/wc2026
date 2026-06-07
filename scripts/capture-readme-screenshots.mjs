@@ -38,7 +38,7 @@ await shot(`${outDir}/admin-auth.png`, `${demo}/admin`, async () => {
 })
 
 await shot(`${outDir}/leaderboard.png`, `${demo}`)
-await shot(`${outDir}/picks.png`, `${demo}/picks`)
+await shot(`${outDir}/predictions.png`, `${demo}/picks`)
 await shot(`${outDir}/rules.png`, `${demo}/rules`)
 
 await browser.close()

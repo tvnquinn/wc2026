@@ -1,31 +1,26 @@
 # WC26 Pool
 
-Open-source World Cup 2026 prediction platform. Create a private league, share the link, and compete on every match.
-
 **Live:** [wc26pool.vercel.app](https://wc26pool.vercel.app)
 
-## Screenshots
+Open-source World Cup 2026 prediction platform. Create a private league, share the link, and compete on every match.
 
-| Landing | Create league |
-|---------|---------------|
-| ![Landing page](docs/screenshots/landing.png) | ![Create league](docs/screenshots/create.png) |
+## Why this exists
 
-| Predict (unlocked) | Admin (logged in) |
-|--------------------|-------------------|
-| ![Predict](docs/screenshots/predict-auth.png) | ![Admin](docs/screenshots/admin-auth.png) |
+Most tournament pools use a **fixed bracket** — you fill it out once before kickoff and then just watch. That works for a pre-tournament rush, but most of the World Cup happens *after* that moment. Group stages upset brackets, knockouts rewrite storylines, and a one-and-done pick sheet goes quiet for weeks.
 
-| Leaderboard | Picks grid |
-|-------------|------------|
-| ![Leaderboard](docs/screenshots/leaderboard.png) | ![Picks](docs/screenshots/picks.png) |
+WC26 Pool is built for **active participation across the whole tournament**:
 
-| Rules |
-|-------|
-| ![Rules](docs/screenshots/rules.png) |
+- **Predict every match** — group stage through the final, not just a static bracket tree.
+- **Score every result** — exact scores and correct outcomes earn points as matches finish.
+- **Escalating knockout values** — later rounds are worth more (R32 → R16 → QF → SF → Final), so a rough group stage does not knock anyone out of the running. Comebacks stay plausible; the leaderboard stays tense.
+- **League scoreboard + predictions table** — see who is winning and exactly what everyone picked, match by match.
+
+The goal is a pool that stays fun for casual and competitive players alike — easy to join, hard to run away with early, and good fuel for friendly trash talk all month long.
 
 ## How it works
 
 - **One global schedule** — 104 matches shared by all leagues (teams, kickoffs, bracket links).
-- **Per-league users & predictions** — each league has its own players, PINs, and leaderboard.
+- **Per-league players & predictions** — each league has its own participants, PINs, and leaderboard.
 - **Hybrid results** — one canonical World Cup scoreboard drives default scoring; leagues can optionally override individual match results.
 
 ## Routes
@@ -36,7 +31,7 @@ Open-source World Cup 2026 prediction platform. Create a private league, share t
 | `/create` | Create a new league |
 | `/{slug}` | League leaderboard |
 | `/{slug}/predict` | Enter predictions (4-digit PIN) |
-| `/{slug}/picks` | View everyone's picks |
+| `/{slug}/picks` | Predictions table — everyone's picks by match |
 | `/{slug}/rules` | Scoring rules |
 | `/{slug}/admin` | Enter match results (league admin password) |
 
@@ -87,6 +82,24 @@ npm run dev      # development server
 npm test         # vitest unit tests (39 tests)
 npm run build    # prisma migrate deploy + next build (production)
 ```
+
+## Screenshots
+
+| Landing | Create league |
+|---------|---------------|
+| ![Landing page](docs/screenshots/landing.png) | ![Create league](docs/screenshots/create.png) |
+
+| Predict (unlocked) | Admin (logged in) |
+|--------------------|-------------------|
+| ![Predict](docs/screenshots/predict-auth.png) | ![Admin](docs/screenshots/admin-auth.png) |
+
+| Leaderboard | Predictions |
+|-------------|-------------|
+| ![Leaderboard](docs/screenshots/leaderboard.png) | ![Predictions table](docs/screenshots/predictions.png) |
+
+| Rules |
+|-------|
+| ![Rules](docs/screenshots/rules.png) |
 
 ## License
 

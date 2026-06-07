@@ -3,6 +3,7 @@ import { formatScoreDisplay } from '@/lib/penalties'
 type User = { id: string; name: string }
 type Match = {
   id: string
+  stage: string
   homeTeam: string
   awayTeam: string
   homeScore: number | null
@@ -10,6 +11,19 @@ type Match = {
   pkHomeScore: number | null
   pkAwayScore: number | null
   isFinished: boolean
+}
+
+function formatStageLabel(stage: string): string {
+  switch (stage) {
+    case 'GROUP':
+      return 'Group'
+    case 'THIRD':
+      return '3rd'
+    case 'FINAL':
+      return 'Final'
+    default:
+      return stage
+  }
 }
 type Prediction = {
   userId: string
@@ -50,6 +64,7 @@ export default function PicksGrid({
       <table className="picks-grid">
         <thead>
           <tr>
+            <th className="picks-grid-stage-col">Stage</th>
             <th className="picks-grid-match-col">Match</th>
             <th className="picks-grid-result-col">Result</th>
             {users.map((user, i) => (
@@ -66,6 +81,7 @@ export default function PicksGrid({
         <tbody>
           {matches.map((match) => (
             <tr key={match.id}>
+              <td className="picks-grid-stage-col">{formatStageLabel(match.stage)}</td>
               <td className="picks-grid-match-col">
                 {match.homeTeam} - {match.awayTeam}
               </td>

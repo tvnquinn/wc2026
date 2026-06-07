@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "WC26 Pool — World Cup Prediction Leagues",
-  description: "Create a private World Cup 2026 prediction league for your family or friends.",
+  description: "Create a private World Cup 2026 prediction league and compete on every match.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

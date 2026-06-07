@@ -38,7 +38,7 @@ export default function CreateLeaguePage() {
               className="input"
               value={slug}
               onChange={(e) => setSlug(e.target.value.toLowerCase())}
-              placeholder="e.g. smith-family"
+              placeholder="e.g. office-pool"
               required
               pattern="[a-z0-9][a-z0-9-]{1,30}[a-z0-9]"
             />
@@ -53,7 +53,7 @@ export default function CreateLeaguePage() {
               className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Smith Family"
+              placeholder="e.g. Office Pool"
               required
               maxLength={60}
             />

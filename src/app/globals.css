@@ -446,6 +446,12 @@ p { color: var(--text-muted); }
   font-size: 0.75rem;
 }
 
+.picks-grid-stage-col {
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 2.75rem;
+}
+
 .picks-grid-match-col {
   text-align: left;
   min-width: 10rem;
