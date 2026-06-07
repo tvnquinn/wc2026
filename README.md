@@ -85,6 +85,10 @@ npm run build    # prisma migrate deploy + next build (production)
 
 ## Screenshots
 
+| Rules |
+|-------|
+| ![Rules](docs/screenshots/rules.png) |
+
 | Landing | Create league |
 |---------|---------------|
 | ![Landing page](docs/screenshots/landing.png) | ![Create league](docs/screenshots/create.png) |
@@ -96,10 +100,6 @@ npm run build    # prisma migrate deploy + next build (production)
 | Leaderboard | Predictions |
 |-------------|-------------|
 | ![Leaderboard](docs/screenshots/leaderboard.png) | ![Predictions table](docs/screenshots/predictions.png) |
-
-| Rules |
-|-------|
-| ![Rules](docs/screenshots/rules.png) |
 
 ## License
 
