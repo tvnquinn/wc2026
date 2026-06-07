@@ -18,13 +18,26 @@ Open-source World Cup 2026 prediction platform. Create a private league, share t
 |------------|-------|
 | ![Picks](docs/screenshots/picks.png) | ![Rules](docs/screenshots/rules.png) |
 
+## Production deploy
+
+Vercel production runs **host-only mode**: `/` redirects to `/sleepwell`, league creation is disabled, and other slugs 404. Multi-league code stays in the repo for local development.
+
+| Production URL | Purpose |
+|----------------|---------|
+| `/sleepwell` | Family leaderboard |
+| `/sleepwell/predict` | Enter picks (4-digit PIN) |
+| `/sleepwell/picks` | Everyone's predictions |
+| `/sleepwell/admin` | Enter match results (family admin password) |
+
+Legacy paths (`/predict`, `/admin`, etc.) redirect to `/sleepwell/...`.
+
 ## How it works
 
 - **One global schedule** — 104 matches shared by all leagues (teams, kickoffs, bracket links).
 - **Per-league users & predictions** — each league has its own players, PINs, and leaderboard.
-- **Hybrid results** — a host league maintains the canonical World Cup scoreboard. Other leagues score against those official results unless they enter their own override for a match (`LeagueResultOverride`).
+- **Hybrid results** — the host league maintains the canonical World Cup scoreboard. Other leagues (local dev) can override results per match (`LeagueResultOverride`).
 
-## Routes
+## Routes (local multi-league dev)
 
 | Path | Purpose |
 |------|---------|
@@ -68,9 +81,10 @@ Open `http://localhost:3000/wc26-demo` for leaderboard/picks; compare with the h
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string (Neon, Supabase, Vercel Postgres, etc.) |
 | `AUTH_SECRET` | Yes (prod) | Random string for signing session cookies |
-| `HOST_LEAGUE_ADMIN_PASSWORD` | Yes (prod) | Admin password for the canonical scoreboard league |
-| `HOST_LEAGUE_NAME` | No | Display name for host league (default: `Official Pool`) |
-| `HOST_LEAGUE_SLUG` | No | URL slug for host league (default: internal constant) |
+| `HOST_LEAGUE_ADMIN_PASSWORD` | No | Override host admin password (default baked in for `/sleepwell`) |
+| `HOST_LEAGUE_NAME` | No | Display name for host league (default: `SleepWell Fam`) |
+| `HOST_LEAGUE_SLUG` | No | URL slug for host league (default: `sleepwell`) |
+| `HOST_ONLY_DEPLOY` | No | `false` re-enables multi-league on Vercel production |
 
 See [.env.example](.env.example). **Never commit real passwords or production URLs.**
 
