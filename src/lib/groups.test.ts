@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { getGroupLetterForTeams, isGroupPlaceholder } from './groups'
+import {
+  getGroupLetterForTeams,
+  isGroupPlaceholder,
+  resolvePlayoffPlaceholder,
+} from './groups'
 
 describe('groups', () => {
   it('identifies group placeholders', () => {
@@ -19,5 +23,15 @@ describe('groups', () => {
   it('supports playoff placeholder teams in group squads', () => {
     expect(getGroupLetterForTeams('South Korea', 'UEFA D')).toBe('A')
     expect(getGroupLetterForTeams('Canada', 'UEFA A')).toBe('B')
+    expect(getGroupLetterForTeams('Australia', 'UEFA C')).toBe('D')
+    expect(getGroupLetterForTeams('Netherlands', 'UEFA B')).toBe('F')
+  })
+
+  it('resolves playoff placeholders to confirmed team names', () => {
+    expect(resolvePlayoffPlaceholder('UEFA A')).toBe('Bosnia and Herzegovina')
+    expect(resolvePlayoffPlaceholder('UEFA B')).toBe('Sweden')
+    expect(resolvePlayoffPlaceholder('UEFA C')).toBe('Türkiye')
+    expect(resolvePlayoffPlaceholder('UEFA D')).toBe('Czechia')
+    expect(resolvePlayoffPlaceholder('Mexico')).toBe('Mexico')
   })
 })

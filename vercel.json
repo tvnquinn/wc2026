@@ -1,5 +1,5 @@
 {
-  "name": "sleepwell-wc2026",
+  "name": "wc26pool",
   "framework": "nextjs",
   "buildCommand": "prisma migrate deploy && next build"
 }

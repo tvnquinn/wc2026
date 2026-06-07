@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,12 +20,12 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "World Cup 2026 Prediction Pool",
-  description: "World Cup 2026 Prediction Pool",
+  title: "WC26 Pool — World Cup Prediction Leagues",
+  description: "Create a private World Cup 2026 prediction league for your family or friends.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "WC 2026 Pool",
+    title: "WC26 Pool",
   },
 };
 
@@ -38,7 +37,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${barlow.variable}`}>
-        <Navbar />
         <main className="animate-fade-in">
           {children}
         </main>

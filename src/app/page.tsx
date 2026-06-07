@@ -1,88 +1,58 @@
-import { prisma } from '@/lib/prisma'
-import { formatMD, getETDateKey, pickSparseTicks } from '@/lib/chart'
-import LeaderboardChart from './LeaderboardChart'
+import Link from 'next/link'
+import GlobalHeader from '@/components/GlobalHeader'
+import { getPublicLeagues } from '@/lib/leagueContext'
+import { formatLeagueBrand } from '@/lib/leagueDisplay'
 
 export const dynamic = 'force-dynamic'
 
-export default async function Home() {
-  const users = await prisma.user.findMany({
-    include: { predictions: true }
-  })
-  
-  const matches = await prisma.match.findMany({
-    orderBy: { kickoffTime: 'asc' }
-  })
-
-  const leaderboard = users.map(user => {
-    const totalPoints = user.predictions.reduce((sum, p) => sum + p.points, 0)
-    return { ...user, totalPoints }
-  }).sort((a, b) => b.totalPoints - a.totalPoints)
-
-  const chartData = [{ name: 'Start', ...Object.fromEntries(leaderboard.map(u => [u.name, 0])) }]
-  
-  const finishedMatches = matches.filter(m => m.isFinished)
-  const matchesByDay = new Map<string, typeof finishedMatches>()
-
-  for (const match of finishedMatches) {
-    const dayKey = getETDateKey(match.kickoffTime)
-    const dayMatches = matchesByDay.get(dayKey) ?? []
-    dayMatches.push(match)
-    matchesByDay.set(dayKey, dayMatches)
-  }
-
-  const sortedDayKeys = [...matchesByDay.keys()].sort()
-  let currentScores: Record<string, number> = Object.fromEntries(leaderboard.map(u => [u.name, 0]))
-
-  for (const dayKey of sortedDayKeys) {
-    const dayMatches = matchesByDay.get(dayKey)!
-    for (const match of dayMatches) {
-      for (const user of leaderboard) {
-        const pred = user.predictions.find(p => p.matchId === match.id)
-        if (pred && pred.points > 0) {
-          currentScores[user.name] += pred.points
-        }
-      }
-    }
-    chartData.push({
-      name: formatMD(dayMatches[0].kickoffTime),
-      ...currentScores
-    })
-  }
-
-  const xTicks = pickSparseTicks(chartData.map(d => d.name))
-
-  const colors = ['#3CAC3B', '#3b82f6', '#fbbf24', '#E61D25', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#84cc16', '#a855f7']
-  const lines = leaderboard.map((u, i) => ({ key: u.name, color: colors[i % colors.length] }))
+export default async function LandingPage() {
+  const leagues = await getPublicLeagues()
 
   return (
-    <div>
-      <h1>🏆 Current Standings</h1>
-      
-      <LeaderboardChart data={chartData} lines={lines} xTicks={xTicks} />
+    <>
+      <GlobalHeader />
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 1rem' }}>
+        <h1 style={{ textAlign: 'center', marginTop: '2rem' }}>World Cup 2026 Prediction Pool</h1>
+        <p style={{ textAlign: 'center', marginBottom: '2rem', color: 'var(--text-muted)' }}>
+          Create a private league, share the link, and compete on every match.
+        </p>
 
-      <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-        {leaderboard.map((user, index) => (
-          <div key={user.id} className="match-row" style={{ padding: '0.8rem 0' }}>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <span style={{ 
-                color: index < 3 ? 'var(--text)' : 'var(--text-muted)', 
-                width: '30px' 
-              }}>
-                {index + 1}.
-              </span>
-              <span>
-                {user.name}
-              </span>
-            </div>
-            <div style={{ color: 'var(--primary)' }}>
-              {user.totalPoints} pts
+        <div className="card" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h2 style={{ marginBottom: '0.75rem' }}>Start a new league</h2>
+          <p style={{ marginBottom: '1rem', fontSize: '0.95rem' }}>
+            Pick a short URL slug, set an admin password, and invite your group.
+          </p>
+          <Link href="/create" className="btn" style={{ display: 'inline-block' }}>
+            Create League
+          </Link>
+        </div>
+
+        {leagues.length > 0 && (
+          <div className="card">
+            <h2 style={{ marginBottom: '1rem' }}>Public leagues</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {leagues.map((league) => (
+                <Link
+                  key={league.slug}
+                  href={`/${league.slug}`}
+                  className="match-row"
+                  style={{ textDecoration: 'none', color: 'inherit', padding: '0.75rem 0' }}
+                >
+                  <div>
+                    <strong>{formatLeagueBrand(league.name)}</strong>
+                    {league.description && (
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        {league.description}
+                      </p>
+                    )}
+                  </div>
+                  <span style={{ color: 'var(--primary)' }}>/{league.slug} →</span>
+                </Link>
+              ))}
             </div>
           </div>
-        ))}
-        {leaderboard.length === 0 && (
-          <p style={{ textAlign: 'center' }}>No participants yet.</p>
         )}
       </div>
-    </div>
+    </>
   )
 }

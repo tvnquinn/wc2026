@@ -7,42 +7,76 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model League {
+  id                String                 @id @default(uuid())
+  slug              String                 @unique
+  name              String
+  description       String?
+  adminPasswordHash String
+  isPublic          Boolean                @default(true)
+  useGlobalResults  Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  users             User[]
+  resultOverrides   LeagueResultOverride[]
+}
+
 model User {
   id           String       @id @default(uuid())
-  name         String       @unique
+  leagueId     String
+  league       League       @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  name         String
   passwordHash String
   predictions  Prediction[]
+
+  @@unique([leagueId, name])
 }
 
 model Match {
-  id                String       @id @default(uuid())
-  homeTeam          String
-  awayTeam          String
-  kickoffTime       DateTime
-  stage             String       // "GROUP", "R32", "R16", "QF", "SF", "THIRD", "FINAL"
-  homeScore         Int?
-  awayScore         Int?
-  pkHomeScore       Int?
-  pkAwayScore       Int?
-  isFinished        Boolean      @default(false)
-  nextMatchId       String?
-  nextMatchSlot     String?      // "HOME" or "AWAY"
-  loserNextMatchId  String?
-  loserNextMatchSlot String?     // "HOME" or "AWAY"
-  predictions       Prediction[]
+  id                 String                 @id @default(uuid())
+  matchNum           String?                @unique
+  homeTeam           String
+  awayTeam           String
+  kickoffTime        DateTime
+  stage              String
+  homeScore          Int?
+  awayScore          Int?
+  pkHomeScore        Int?
+  pkAwayScore        Int?
+  isFinished         Boolean                @default(false)
+  nextMatchId        String?
+  nextMatchSlot      String?
+  loserNextMatchId   String?
+  loserNextMatchSlot String?
+  predictions        Prediction[]
+  resultOverrides    LeagueResultOverride[]
+}
+
+model LeagueResultOverride {
+  id          String  @id @default(uuid())
+  leagueId    String
+  league      League  @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  matchId     String
+  match       Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  homeScore   Int
+  awayScore   Int
+  pkHomeScore Int?
+  pkAwayScore Int?
+  isFinished  Boolean @default(true)
+
+  @@unique([leagueId, matchId])
 }
 
 model Prediction {
-  id          String   @id @default(uuid())
-  user        User     @relation(fields: [userId], references: [id])
+  id          String @id @default(uuid())
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
-  match       Match    @relation(fields: [matchId], references: [id])
+  match       Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
   matchId     String
   homeScore   Int
   awayScore   Int
   pkHomeScore Int?
   pkAwayScore Int?
-  points      Int      @default(0)
+  points      Int    @default(0)
 
   @@unique([userId, matchId])
 }

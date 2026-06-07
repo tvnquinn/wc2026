@@ -13,12 +13,21 @@ export const GROUP_TEAMS: Record<string, string[]> = {
   L: ['England', 'Croatia', 'Ghana', 'Panama'],
 }
 
-const PLAYOFF_ALIASES: Record<string, Record<string, string>> = {
-  A: { 'UEFA D': 'Czechia' },
-  B: { 'UEFA A': 'Bosnia and Herzegovina' },
+/** Playoff winner placeholders from an older schedule → confirmed team names. */
+export const PLAYOFF_PLACEHOLDER_MAP: Record<string, string> = {
+  'UEFA A': 'Bosnia and Herzegovina',
+  'UEFA B': 'Sweden',
+  'UEFA C': 'Türkiye',
+  'UEFA D': 'Czechia',
+  'FIFA 1': 'DR Congo',
+  'FIFA 2': 'Iraq',
 }
 
 export const GROUP_LETTERS = Object.keys(GROUP_TEAMS)
+
+export function resolvePlayoffPlaceholder(team: string): string {
+  return PLAYOFF_PLACEHOLDER_MAP[team] ?? team
+}
 
 export function isGroupPlaceholder(code: string): boolean {
   return /^[12][A-L]$/.test(code) || /^3[A-L]+$/.test(code)
@@ -26,9 +35,10 @@ export function isGroupPlaceholder(code: string): boolean {
 
 function squadSet(groupLetter: string): Set<string> {
   const squad = new Set(GROUP_TEAMS[groupLetter])
-  const aliases = PLAYOFF_ALIASES[groupLetter]
-  if (aliases) {
-    for (const alias of Object.keys(aliases)) squad.add(alias)
+  for (const [placeholder, canonical] of Object.entries(PLAYOFF_PLACEHOLDER_MAP)) {
+    if (squad.has(canonical)) {
+      squad.add(placeholder)
+    }
   }
   return squad
 }

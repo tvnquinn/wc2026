@@ -1,4 +1,4 @@
-import { GROUP_LETTERS, getGroupLetterForTeams } from './groups'
+import { GROUP_LETTERS, getGroupLetterForTeams, resolvePlayoffPlaceholder } from './groups'
 
 export type StandingRow = {
   team: string
@@ -47,8 +47,8 @@ export function computeGroupStandings(
 
   const teamNames = new Set<string>()
   for (const m of groupMatches) {
-    teamNames.add(m.homeTeam)
-    teamNames.add(m.awayTeam)
+    teamNames.add(resolvePlayoffPlaceholder(m.homeTeam))
+    teamNames.add(resolvePlayoffPlaceholder(m.awayTeam))
   }
   if (teamNames.size !== 4) return null
 
@@ -59,8 +59,8 @@ export function computeGroupStandings(
 
   for (const m of groupMatches) {
     if (m.homeScore == null || m.awayScore == null) return null
-    const home = rows.get(m.homeTeam)
-    const away = rows.get(m.awayTeam)
+    const home = rows.get(resolvePlayoffPlaceholder(m.homeTeam))
+    const away = rows.get(resolvePlayoffPlaceholder(m.awayTeam))
     if (!home || !away) continue
 
     home.played++
@@ -97,7 +97,7 @@ export function resolvePlaceholder(
     const group = posMatch[2]
     const standings = standingsByGroup.get(group)
     if (!standings || standings.length <= index) return null
-    return standings[index].team
+    return resolvePlayoffPlaceholder(standings[index].team)
   }
 
   const thirdMatch = code.match(/^3([A-L]+)$/)
@@ -108,7 +108,7 @@ export function resolvePlaceholder(
       if (!standings || standings.length < 3) return null
       thirds.push(standings[2])
     }
-    return [...thirds].sort(compareStandings)[0].team
+    return resolvePlayoffPlaceholder([...thirds].sort(compareStandings)[0].team)
   }
 
   return null

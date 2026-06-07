@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WC26 Pool
 
-## Getting Started
+Open-source World Cup 2026 prediction platform. Create a private league, share the link, and compete on every match.
 
-First, run the development server:
+**Live:** [wc26pool.vercel.app](https://wc26pool.vercel.app)
+
+## Screenshots
+
+| Landing | Create league |
+|---------|---------------|
+| ![Landing page](docs/screenshots/landing.png) | ![Create league](docs/screenshots/create.png) |
+
+| Leaderboard | Predict |
+|-------------|---------|
+| ![Leaderboard](docs/screenshots/leaderboard.png) | ![Predict](docs/screenshots/predict.png) |
+
+| Picks grid | Rules |
+|------------|-------|
+| ![Picks](docs/screenshots/picks.png) | ![Rules](docs/screenshots/rules.png) |
+
+## How it works
+
+- **One global schedule** — 104 matches shared by all leagues (teams, kickoffs, bracket links).
+- **Per-league users & predictions** — each league has its own players, PINs, and leaderboard.
+- **Hybrid results** — a host league maintains the canonical World Cup scoreboard. Other leagues score against those official results unless they enter their own override for a match (`LeagueResultOverride`).
+
+## Routes
+
+| Path | Purpose |
+|------|---------|
+| `/` | Landing + public league directory |
+| `/create` | Create a new league |
+| `/{slug}` | League leaderboard |
+| `/{slug}/predict` | Enter predictions (4-digit PIN) |
+| `/{slug}/picks` | View everyone's picks |
+| `/{slug}/rules` | Scoring rules |
+| `/{slug}/admin` | Enter match results (league admin password) |
+
+Legacy flat paths (`/predict`, `/admin`, etc.) redirect to the host league.
+
+## Local QA: demo league (not deployed)
+
+Multi-league behavior was verified locally with a **demo league only** — production does not include demo users or results.
 
 ```bash
+# 1. Start dev (SQLite — see package.json db:local)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# 2. Seed global 104-match schedule once (host league admin → Seed Match Schedule)
+
+# 3. Seed an isolated demo league (users, random picks, league-only results)
+npx tsx scripts/seed-demo-league.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The demo script (`wc26-demo`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Creates 10 fictional players with independent random predictions
+- Writes **league-only** result overrides — does **not** change the global scoreboard
+- Confirms host-league scoring stays untouched when re-running the demo seed
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open `http://localhost:3000/wc26-demo` for leaderboard/picks; compare with the host league to confirm result isolation.
 
-## Learn More
+## Self-hosting
 
-To learn more about Next.js, take a look at the following resources:
+### Environment variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string (Neon, Supabase, Vercel Postgres, etc.) |
+| `AUTH_SECRET` | Yes (prod) | Random string for signing session cookies |
+| `HOST_LEAGUE_ADMIN_PASSWORD` | Yes (prod) | Admin password for the canonical scoreboard league |
+| `HOST_LEAGUE_NAME` | No | Display name for host league (default: `Official Pool`) |
+| `HOST_LEAGUE_SLUG` | No | URL slug for host league (default: internal constant) |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See [.env.example](.env.example). **Never commit real passwords or production URLs.**
 
-## Deploy on Vercel
+### Local development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+For quick local testing, you can use SQLite (`DATABASE_URL="file:./dev.db"`) and set `provider = "sqlite"` in `prisma/schema.prisma`. Production uses PostgreSQL.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install
+npm run db:local    # SQLite only
+npm run dev         # http://localhost:3000
+```
+
+**Before deploying**, ensure `prisma/schema.prisma` uses `provider = "postgresql"` and run `npm run build`.
+
+### First-time match seed
+
+An admin must seed the global 104-match schedule once: go to `/{host-slug}/admin`, log in, and click **Seed Match Schedule**. Match results start blank until entered.
+
+### Clear all results (ops)
+
+```bash
+DATABASE_URL=... npx tsx scripts/clear-match-results.ts
+```
+
+## Scripts
+
+```bash
+npm run dev      # development server
+npm test         # vitest unit tests (39 tests)
+npm run build    # prisma migrate deploy + next build (production)
+npx tsx scripts/seed-demo-league.ts   # local demo only
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "db:local": "prisma db push --accept-data-loss && prisma generate",
     "postinstall": "prisma generate"
   },
   "dependencies": {

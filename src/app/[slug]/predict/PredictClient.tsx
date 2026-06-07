@@ -38,16 +38,21 @@ function sanitizePin(value: string): string {
 }
 
 export default function PredictClient({
+  leagueSlug,
   users,
   matches,
+  scoredMatchIds,
   allPredictions,
   initialSessionUserId,
 }: {
+  leagueSlug: string
   users: UserOption[]
   matches: Match[]
+  scoredMatchIds: string[]
   allPredictions: Prediction[]
   initialSessionUserId: string | null
 }) {
+  const scoredSet = new Set(scoredMatchIds)
   const [selectedUserId, setSelectedUserId] = useState<string>(initialSessionUserId ?? '')
   const [sessionUserId, setSessionUserId] = useState<string | null>(initialSessionUserId)
   const [newUserName, setNewUserName] = useState<string>('')
@@ -122,7 +127,7 @@ export default function PredictClient({
     if (!newUserName.trim() || !PIN_REGEX.test(newUserPin) || newUserPin.length !== 4) return
     setLoading(true)
     try {
-      const id = await createUser(newUserName, newUserPin)
+      const id = await createUser(leagueSlug, newUserName, newUserPin)
       setSelectedUserId(id)
       setSessionUserId(id)
       setNewUserName('')
@@ -139,7 +144,7 @@ export default function PredictClient({
     if (!selectedUserId || unlockPin.length !== 4) return
     setLoading(true)
     try {
-      await unlockUser(selectedUserId, unlockPin)
+      await unlockUser(leagueSlug, selectedUserId, unlockPin)
       setSessionUserId(selectedUserId)
       setUnlockPin('')
     } catch (e: any) {
@@ -173,7 +178,7 @@ export default function PredictClient({
     }).filter(p => !isNaN(p.homeScore) && !isNaN(p.awayScore))
 
     try {
-      await submitAllPredictions(validPreds)
+      await submitAllPredictions(leagueSlug, validPreds)
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
     } catch (err: any) {
@@ -213,7 +218,7 @@ export default function PredictClient({
             <input
               type="text"
               className="input"
-              placeholder="New family member name"
+              placeholder="New participant"
               value={newUserName}
               onChange={e => setNewUserName(e.target.value)}
               style={{ flex: 1, minWidth: '140px' }}
@@ -274,7 +279,7 @@ export default function PredictClient({
                 <h3 style={{ borderBottom: '2px solid var(--text)', paddingBottom: '0.35rem', marginBottom: '0.75rem', color: 'var(--text)' }}>{stage} STAGE</h3>
                 <div className="match-card-list">
                   {stageMatches.map(match => {
-                    const isLocked = match.isFinished || now >= new Date(match.kickoffTime)
+                    const isLocked = scoredSet.has(match.id) || now >= new Date(match.kickoffTime)
                     const scores = predictions[match.id] || emptyPrediction()
                     const homeScore = scores.homeScore
                     const awayScore = scores.awayScore
@@ -354,7 +359,7 @@ export default function PredictClient({
           {mounted && createPortal(
             <div className="predict-save-bar">
               <button type="button" className="btn" onClick={handleSaveAll} disabled={loading} style={{ background: success ? 'var(--primary)' : 'var(--accent)', color: success ? '#fff' : '#000', boxShadow: '0 8px 16px rgba(0,0,0,0.5)', border: '2px solid #000' }}>
-                {loading ? 'Saving...' : success ? '✓ Saved Globally!' : '💾 Save All Predictions'}
+                {loading ? 'Saving...' : success ? '✓ All Predictions Saved' : '💾 Save All Predictions'}
               </button>
             </div>,
             document.body
@@ -368,7 +373,7 @@ export default function PredictClient({
         <div className="card" style={{ marginTop: '2rem', textAlign: 'center' }}>
           <p>No matches in the schedule.</p>
           <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            If you are running the app for the first time, please go to the <a href="/admin" style={{ color: 'var(--text)' }}>Admin page</a> (password: <code>potty</code>) and click <strong>&quot;Reset &amp; Seed Database&quot;</strong> to seed the match schedule.
+            If you are running the app for the first time, please go to the <a href={`/${leagueSlug}/admin`} style={{ color: 'var(--text)' }}>Admin page</a> and click <strong>&quot;Seed Match Schedule&quot;</strong> to load the 104 matches.
           </p>
         </div>
       ) : null}

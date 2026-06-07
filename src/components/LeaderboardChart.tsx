@@ -40,19 +40,19 @@ export default function LeaderboardChart({
             allowDecimals={false}
             tickFormatter={(value: number) => String(Math.round(value))}
           />
-          <Tooltip 
-            contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border)', color: 'var(--text)' }} 
+          <Tooltip
+            contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
             itemStyle={{ color: 'var(--text)' }}
           />
           <Legend />
-          {lines.map(line => (
-            <Line 
+          {lines.map((line) => (
+            <Line
               key={line.key}
-              type="monotone" 
-              dataKey={line.key} 
-              stroke={line.color} 
+              type="monotone"
+              dataKey={line.key}
+              stroke={line.color}
               strokeWidth={3}
-              activeDot={{ r: 8 }} 
+              activeDot={{ r: 8 }}
             />
           ))}
         </LineChart>

@@ -46,3 +46,8 @@ next-env.d.ts
 /prisma/dev.db
 /prisma/prisma/
 .env*.local
+
+# local dev HTML snapshots
+/admin.html
+/home.html
+/predict.html
