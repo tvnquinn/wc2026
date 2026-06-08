@@ -5,6 +5,7 @@ import {
   computeGroupStandings,
   getGroupMatches,
   isGroupComplete,
+  isGroupStageComplete,
   resolvePlaceholder,
 } from './groupStandings'
 
@@ -58,6 +59,11 @@ describe('groupStandings', () => {
     const standingsByGroup = buildAllGroupStandings(incompleteGroupAMatches())
     expect(resolvePlaceholder('1A', standingsByGroup)).toBeNull()
     expect(resolvePlaceholder('2B', standingsByGroup)).toBeNull()
+  })
+
+  it('requires every group to finish before the group stage is complete', () => {
+    expect(isGroupStageComplete(incompleteGroupAMatches())).toBe(false)
+    expect(isGroupStageComplete([...groupAMatches(), ...groupBMatches()])).toBe(false)
   })
 
   it('picks the best third-place team across a combination code', () => {

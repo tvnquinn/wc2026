@@ -40,6 +40,14 @@ export function isGroupComplete(groupMatches: FinishedGroupMatch[]): boolean {
   return groupMatches.length === 6 && groupMatches.every((m) => m.isFinished)
 }
 
+export function isGroupStageComplete(matches: FinishedGroupMatch[]): boolean {
+  for (const letter of GROUP_LETTERS) {
+    const groupMatches = getGroupMatches(matches, letter)
+    if (!isGroupComplete(groupMatches)) return false
+  }
+  return true
+}
+
 export function computeGroupStandings(
   groupMatches: FinishedGroupMatch[]
 ): StandingRow[] | null {

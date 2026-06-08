@@ -410,6 +410,8 @@ export async function clearAllMatchResults(leagueSlug: string) {
     prisma.prediction.updateMany({ data: { points: 0 } }),
   ])
 
+  await updateR32TeamsFromGroupStage()
+
   const allLeagues = await prisma.league.findMany({ select: { slug: true } })
   for (const l of allLeagues) {
     revalidateLeague(l.slug)
