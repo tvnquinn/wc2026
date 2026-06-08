@@ -6,6 +6,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { isKnockoutStage } from '@/lib/penalties'
 import { getKnockoutBracketUpdates } from '@/lib/bracket'
+import { restoreGlobalScheduleFromCsv } from '@/lib/seedMatches'
 import { updateR32TeamsFromGroupStage } from '@/lib/r32Update'
 import {
   SESSION_COOKIE,
@@ -397,20 +398,11 @@ export async function clearAllMatchResults(leagueSlug: string) {
   requireGlobalScorerLeague(league.slug)
 
   await prisma.$transaction([
-    prisma.match.updateMany({
-      data: {
-        homeScore: null,
-        awayScore: null,
-        pkHomeScore: null,
-        pkAwayScore: null,
-        isFinished: false,
-      },
-    }),
     prisma.leagueResultOverride.deleteMany(),
     prisma.prediction.updateMany({ data: { points: 0 } }),
   ])
 
-  await updateR32TeamsFromGroupStage()
+  await restoreGlobalScheduleFromCsv()
 
   const allLeagues = await prisma.league.findMany({ select: { slug: true } })
   for (const l of allLeagues) {
