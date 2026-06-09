@@ -66,7 +66,7 @@ function parsePicksPage(html: string) {
 
   const rows: Array<{ homeTeam: string; awayTeam: string; picks: string[] }> = []
   for (const match of html.matchAll(
-    /<tr><td class="picks-grid-stage-col">[^<]*<\/td><td class="picks-grid-match-col">(.*?)<\/td><td class="picks-grid-result-col">[^<]*<\/td>(.*?)<\/tr>/gs,
+    /<tr><td class="picks-grid-stage-col">[^<]*<\/td><td class="picks-grid-match-col">([\s\S]*?)<\/td><td class="picks-grid-result-col">[^<]*<\/td>([\s\S]*?)<\/tr>/g,
   )) {
     const teams = parseMatchLabel(match[1])
     if (!teams) continue
