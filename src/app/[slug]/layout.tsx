@@ -29,22 +29,24 @@ export default async function LeagueLayout({
   return (
     <>
       <Navbar slug={league.slug} leagueName={league.name} />
-      {league.description && (
-        <p
-          style={{
-            textAlign: 'center',
-            margin: '0.75rem 1rem 0',
-            fontSize: '0.95rem',
-            color: 'var(--text-muted)',
-            maxWidth: '720px',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-          }}
-        >
-          {league.description}
-        </p>
-      )}
-      {children}
+      <div className="page-content">
+        {league.description && (
+          <p
+            style={{
+              textAlign: 'center',
+              margin: '0 0 0.75rem',
+              fontSize: '0.95rem',
+              color: 'var(--text-muted)',
+              maxWidth: '720px',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+            }}
+          >
+            {league.description}
+          </p>
+        )}
+        {children}
+      </div>
     </>
   )
 }
