@@ -20,6 +20,7 @@ export async function resetUnresolvedKnockoutPlaceholders() {
       homeTeam: true,
       awayTeam: true,
       isFinished: true,
+      kickoffTime: true,
     },
   })
 

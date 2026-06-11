@@ -35,6 +35,7 @@ describe('getUnresolvedKnockoutPlaceholderResets', () => {
         homeTeam: '2A',
         awayTeam: '2B',
         isFinished: false,
+        kickoffTime: new Date('2026-06-28T15:00:00-04:00'),
       },
       {
         id: 'r32-75',
@@ -42,6 +43,7 @@ describe('getUnresolvedKnockoutPlaceholderResets', () => {
         homeTeam: '1F',
         awayTeam: '2C',
         isFinished: false,
+        kickoffTime: new Date('2026-06-29T21:00:00-04:00'),
       },
       {
         id: 'r16-90',
@@ -49,6 +51,7 @@ describe('getUnresolvedKnockoutPlaceholderResets', () => {
         homeTeam: 'Czechia',
         awayTeam: 'W75',
         isFinished: false,
+        kickoffTime: new Date('2026-07-04T13:00:00-04:00'),
       },
     ])
 
@@ -70,6 +73,7 @@ describe('getUnresolvedKnockoutPlaceholderResets', () => {
         homeTeam: 'South Korea',
         awayTeam: 'Switzerland',
         isFinished: true,
+        kickoffTime: new Date('2026-06-28T15:00:00-04:00'),
       },
       {
         id: 'r16-90',
@@ -77,6 +81,7 @@ describe('getUnresolvedKnockoutPlaceholderResets', () => {
         homeTeam: 'South Korea',
         awayTeam: 'W75',
         isFinished: false,
+        kickoffTime: new Date('2026-07-04T13:00:00-04:00'),
       },
     ])
 

@@ -2,12 +2,13 @@ import { buildMatchScheduleFromCsv, ScheduleRow } from '@/lib/seedMatches'
 
 type MatchSlot = 'homeTeam' | 'awayTeam'
 
-type DbMatchRow = {
+export type DbMatchRow = {
   id: string
   matchNum: string | null
   homeTeam: string
   awayTeam: string
   isFinished: boolean
+  kickoffTime: Date
 }
 
 export type PlaceholderReset = {
@@ -27,13 +28,40 @@ export function isWinnerOrLoserPlaceholder(team: string): boolean {
   return team.startsWith('W') || team.startsWith('L')
 }
 
+/** Index DB rows by matchNum, falling back to kickoff order when matchNum is missing. */
+export function buildDbByMatchNum(
+  schedule: ScheduleRow[],
+  dbMatches: DbMatchRow[]
+): Map<string, DbMatchRow> {
+  const byMatchNum = new Map<string, DbMatchRow>()
+  for (const match of dbMatches) {
+    if (match.matchNum) byMatchNum.set(match.matchNum, match)
+  }
+
+  if (schedule.length !== dbMatches.length) return byMatchNum
+
+  const scheduleSorted = [...schedule].sort(
+    (a, b) => a.kickoffTime.getTime() - b.kickoffTime.getTime()
+  )
+  const dbSorted = [...dbMatches].sort(
+    (a, b) => a.kickoffTime.getTime() - b.kickoffTime.getTime()
+  )
+
+  for (let i = 0; i < scheduleSorted.length; i++) {
+    const matchNum = scheduleSorted[i].matchNum
+    if (!byMatchNum.has(matchNum)) {
+      byMatchNum.set(matchNum, dbSorted[i])
+    }
+  }
+
+  return byMatchNum
+}
+
 export function getUnresolvedKnockoutPlaceholderResets(
   schedule: ScheduleRow[],
   dbMatches: DbMatchRow[]
 ): PlaceholderReset[] {
-  const dbByMatchNum = new Map(
-    dbMatches.flatMap((m) => (m.matchNum ? [[m.matchNum, m] as const] : []))
-  )
+  const dbByMatchNum = buildDbByMatchNum(schedule, dbMatches)
   const resets: PlaceholderReset[] = []
 
   for (const canonical of schedule) {
@@ -48,7 +76,7 @@ export function getUnresolvedKnockoutPlaceholderResets(
       if (!feederNum) continue
 
       const feeder = dbByMatchNum.get(feederNum)
-      if (!feeder || feeder.isFinished) continue
+      if (feeder?.isFinished) continue
       if (db[slot] === placeholder) continue
 
       resets.push({ matchId: db.id, slot, team: placeholder })
