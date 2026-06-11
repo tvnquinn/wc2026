@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { resetUnresolvedKnockoutPlaceholders } from '@/lib/syncMatchTeams'
 import { updateR32TeamsFromGroupStage } from '@/lib/r32Update'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { getAdminSessionLeagueId } from '@/app/actions'
@@ -16,6 +17,7 @@ export default async function AdminPage({
   const league = await getLeagueBySlug(slug)
 
   await updateR32TeamsFromGroupStage()
+  await resetUnresolvedKnockoutPlaceholders()
 
   const [matches, overrides, adminLeagueId] = await Promise.all([
     prisma.match.findMany({ orderBy: { kickoffTime: 'asc' } }),

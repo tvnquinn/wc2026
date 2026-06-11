@@ -10,6 +10,8 @@
     "dev:local": "tsx scripts/dev-local.ts",
     "dev:prod": "tsx scripts/dev-prod-db.ts",
     "import:prod-picks": "tsx scripts/import-prod-predictions.ts",
+    "fix:team-names": "tsx scripts/fix-team-names.ts",
+    "rename:users": "tsx scripts/rename-users.ts",
     "build": "prisma migrate deploy && next build",
     "vercel-build": "prisma migrate deploy && next build",
     "start": "next start",

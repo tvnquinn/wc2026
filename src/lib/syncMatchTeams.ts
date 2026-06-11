@@ -1,10 +1,35 @@
 import { prisma } from '@/lib/prisma'
 import { getKnockoutBracketUpdates } from '@/lib/bracket'
 import { resolvePlayoffPlaceholder } from '@/lib/groups'
+import {
+  getCanonicalSchedule,
+  getUnresolvedKnockoutPlaceholderResets,
+} from '@/lib/knockoutPlaceholders'
 import { normalizePlayoffPlaceholderTeamNames } from '@/lib/playoffNormalize'
 import { updateR32TeamsFromGroupStage } from '@/lib/r32Update'
 
 export { normalizePlayoffPlaceholderTeamNames } from '@/lib/playoffNormalize'
+
+/** Restore W/L placeholders when the feeder knockout match has not finished yet. */
+export async function resetUnresolvedKnockoutPlaceholders() {
+  const schedule = getCanonicalSchedule()
+  const dbMatches = await prisma.match.findMany({
+    select: {
+      id: true,
+      matchNum: true,
+      homeTeam: true,
+      awayTeam: true,
+      isFinished: true,
+    },
+  })
+
+  for (const reset of getUnresolvedKnockoutPlaceholderResets(schedule, dbMatches)) {
+    await prisma.match.update({
+      where: { id: reset.matchId },
+      data: { [reset.slot]: reset.team },
+    })
+  }
+}
 
 /** Re-apply knockout bracket slots from finished matches (after placeholder cleanup). */
 export async function replayKnockoutBracketFromResults() {
@@ -43,5 +68,6 @@ export async function replayKnockoutBracketFromResults() {
 export async function syncAllMatchTeamNames() {
   await normalizePlayoffPlaceholderTeamNames()
   await updateR32TeamsFromGroupStage()
+  await resetUnresolvedKnockoutPlaceholders()
   await replayKnockoutBracketFromResults()
 }
