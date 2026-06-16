@@ -5,9 +5,10 @@ export const dynamic = 'force-dynamic'
 
 export default function LandingPage() {
   return (
-    <>
+    <main className="animate-fade-in">
       <GlobalHeader />
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 1rem' }}>
+      <div className="page-content">
+      <div style={{ maxWidth: '720px', margin: '0 auto' }}>
         <h1 style={{ textAlign: 'center', marginTop: '2rem' }}>World Cup 2026 Prediction Pool</h1>
         <p style={{ textAlign: 'center', marginBottom: '2rem', color: 'var(--text-muted)' }}>
           Create a private league, share the link, and compete on every match.
@@ -23,6 +24,7 @@ export default function LandingPage() {
           </Link>
         </div>
       </div>
-    </>
+      </div>
+    </main>
   )
 }

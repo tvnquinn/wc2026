@@ -27,26 +27,14 @@ export default async function LeagueLayout({
   const league = await getLeagueBySlug(slug)
 
   return (
-    <>
+    <main className="animate-fade-in">
       <Navbar slug={league.slug} leagueName={league.name} />
       <div className="page-content">
         {league.description && (
-          <p
-            style={{
-              textAlign: 'center',
-              margin: '0 0 0.75rem',
-              fontSize: '0.95rem',
-              color: 'var(--text-muted)',
-              maxWidth: '720px',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-            }}
-          >
-            {league.description}
-          </p>
+          <p className="league-description">{league.description}</p>
         )}
         {children}
       </div>
-    </>
+    </main>
   )
 }

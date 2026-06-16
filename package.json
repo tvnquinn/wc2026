@@ -21,6 +21,7 @@
     "test:e2e": "tsx scripts/run-e2e.ts",
     "test:e2e:install": "playwright install --with-deps chromium",
     "seed:schedule": "tsx scripts/seed-schedule.ts",
+    "import:sleepwell": "tsx scripts/import-sleepwell-from-production.ts",
     "typecheck": "tsc --noEmit",
     "db:local": "prisma db push --accept-data-loss && prisma generate",
     "postinstall": "prisma generate"

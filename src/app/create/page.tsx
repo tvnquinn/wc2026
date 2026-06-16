@@ -27,9 +27,10 @@ export default function CreateLeaguePage() {
   }
 
   return (
-    <>
+    <main className="animate-fade-in">
       <GlobalHeader />
-      <div style={{ maxWidth: '480px', margin: '2rem auto', padding: '0 1rem' }}>
+      <div className="page-content">
+      <div style={{ maxWidth: '480px', margin: '2rem auto' }}>
         <h1>Create a League</h1>
         <form onSubmit={handleSubmit} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <label>
@@ -82,6 +83,7 @@ export default function CreateLeaguePage() {
           </button>
         </form>
       </div>
-    </>
+      </div>
+    </main>
   )
 }

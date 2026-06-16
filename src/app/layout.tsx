@@ -37,9 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${barlow.variable}`}>
-        <main className="animate-fade-in">
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   );

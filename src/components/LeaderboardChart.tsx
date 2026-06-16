@@ -22,7 +22,7 @@ export default function LeaderboardChart({
   const tickSet = new Set(xTicks)
 
   return (
-    <div className="card" style={{ height: '400px', width: '100%', marginBottom: '2rem' }}>
+    <div className="card leaderboard-chart-card">
       <h3 style={{ marginBottom: '1rem', color: 'var(--text)' }}>Score History</h3>
       <ResponsiveContainer width="100%" height="85%">
         <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
@@ -44,7 +44,7 @@ export default function LeaderboardChart({
             contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
             itemStyle={{ color: 'var(--text)' }}
           />
-          <Legend />
+          <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
           {lines.map((line) => (
             <Line
               key={line.key}
