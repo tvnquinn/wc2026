@@ -33,6 +33,10 @@ import {
 } from '@/lib/league'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { recalculatePointsForMatch } from '@/lib/recalculatePoints'
+import {
+  recalculateJackpotForAllLeagues,
+  recalculateJackpotForLeague,
+} from '@/lib/recalculateJackpot'
 import { seedGlobalMatches } from '@/lib/seedMatches'
 
 type PredictionInput = {
@@ -314,6 +318,7 @@ export async function setMatchResult(
     }
 
     await recalculatePointsForMatch(matchId, match.stage)
+    await recalculateJackpotForAllLeagues()
   } else {
     await prisma.leagueResultOverride.upsert({
       where: { leagueId_matchId: { leagueId: league.id, matchId } },
@@ -336,6 +341,7 @@ export async function setMatchResult(
     })
 
     await recalculatePointsForMatch(matchId, existing.stage)
+    await recalculateJackpotForLeague(league.id)
   }
 
   const allLeagues = await prisma.league.findMany({ select: { slug: true } })

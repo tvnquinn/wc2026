@@ -3,6 +3,7 @@ import { formatMD, getETDateKey, pickSparseTicks } from '@/lib/chart'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { isScoredForLeague, effectiveInputForMatch } from '@/lib/effectiveResults'
 import { assignCompetitionRanks } from '@/lib/leaderboardRank'
+import { ensureJackpotSeededForLeague } from '@/lib/recalculateJackpot'
 import { userColorMap } from '@/lib/userColors'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import StandingsList from '@/components/StandingsList'
@@ -17,7 +18,13 @@ export default async function LeagueHomePage({
   const { slug } = await params
   const league = await getLeagueBySlug(slug)
 
-  const [users, matches, overrides] = await Promise.all([
+  await ensureJackpotSeededForLeague(league.id)
+
+  const [leagueRow, users, matches, overrides] = await Promise.all([
+    prisma.league.findUniqueOrThrow({
+      where: { id: league.id },
+      select: { jackpotBalance: true },
+    }),
     prisma.user.findMany({
       where: { leagueId: league.id },
       orderBy: { name: 'asc' },
@@ -34,8 +41,15 @@ export default async function LeagueHomePage({
   const leaderboard = assignCompetitionRanks(
     users
       .map((user) => {
-        const totalPoints = user.predictions.reduce((sum, p) => sum + p.points, 0)
-        return { id: user.id, name: user.name, totalPoints }
+        const matchPoints = user.predictions.reduce((sum, p) => sum + p.points, 0)
+        const totalPoints = matchPoints + user.jackpotWinnings
+        return {
+          id: user.id,
+          name: user.name,
+          matchPoints,
+          jackpotWinnings: user.jackpotWinnings,
+          totalPoints,
+        }
       })
       .sort((a, b) => b.totalPoints - a.totalPoints)
   ).map((entry) => ({
@@ -87,6 +101,13 @@ export default async function LeagueHomePage({
   return (
     <div>
       <h1>🏆 Current Standings</h1>
+
+      {leagueRow.jackpotBalance > 0 && (
+        <div className="card jackpot-banner">
+          <span className="jackpot-banner-label">Current jackpot</span>
+          <span className="jackpot-banner-amount">{leagueRow.jackpotBalance} pts</span>
+        </div>
+      )}
 
       <LeaderboardChart data={chartData} lines={lines} xTicks={xTicks} />
 

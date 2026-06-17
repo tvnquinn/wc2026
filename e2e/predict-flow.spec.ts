@@ -17,7 +17,8 @@ test.describe('predict → submit → leaderboard', () => {
     await page.getByRole('button', { name: 'Add' }).click()
     await expect(page.getByText('GROUP STAGE')).toBeVisible({ timeout: 15_000 })
 
-    const firstMatch = page.locator('.match-card').first()
+    const firstMatch = page.locator('.match-card').filter({ has: page.getByRole('spinbutton') }).first()
+    await expect(firstMatch).toBeVisible({ timeout: 15_000 })
     const homeTeam = await firstMatch.locator('.predict-team-name').first().innerText()
     const awayTeam = await firstMatch.locator('.predict-team-name').last().innerText()
 
@@ -30,16 +31,21 @@ test.describe('predict → submit → leaderboard', () => {
 
     await page.goto(LEAGUE)
     await expect(page.getByRole('heading', { name: '🏆 Current Standings' })).toBeVisible()
-    const playerRow = page.locator('.match-row').filter({ hasText: PLAYER_NAME })
+    const playerRow = page.locator('.standings-card').filter({ hasText: PLAYER_NAME })
     await expect(playerRow).toBeVisible()
-    await expect(playerRow).toContainText('0 pts')
+    await expect(playerRow.locator('.standings-card-points')).toContainText('0 pts')
 
     await page.goto(`${LEAGUE}/admin`)
     await page.getByPlaceholder('League admin password').fill(E2E_ADMIN_PASSWORD)
     await page.getByRole('button', { name: 'Login' }).click()
     await expect(page.getByText('League Management')).toBeVisible({ timeout: 15_000 })
 
-    const adminFirstMatch = page.locator('.match-card').first()
+    const adminFirstMatch = page
+      .locator('.match-card')
+      .filter({ hasText: homeTeam })
+      .filter({ hasText: awayTeam })
+      .first()
+    await expect(adminFirstMatch).toBeVisible({ timeout: 15_000 })
     await adminFirstMatch.getByLabel(`${homeTeam} score`).fill('2')
     await adminFirstMatch.getByLabel(`${awayTeam} score`).fill('1')
     await page.getByRole('button', { name: '💾 Save All Results' }).click()
@@ -49,7 +55,7 @@ test.describe('predict → submit → leaderboard', () => {
 
     await page.goto(LEAGUE)
     await page.reload()
-    await expect(page.locator('.match-row').filter({ hasText: PLAYER_NAME })).toContainText('3 pts', {
+    await expect(page.locator('.standings-card').filter({ hasText: PLAYER_NAME }).locator('.standings-card-points')).toContainText('3 pts', {
       timeout: 15_000,
     })
   })

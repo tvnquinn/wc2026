@@ -15,6 +15,8 @@ model League {
   adminPasswordHash String
   isPublic          Boolean                @default(true)
   useGlobalResults  Boolean                @default(true)
+  jackpotBalance    Int                    @default(0)
+  jackpotSeededAt   DateTime?
   createdAt         DateTime               @default(now())
   users             User[]
   resultOverrides   LeagueResultOverride[]
@@ -24,9 +26,10 @@ model User {
   id           String       @id @default(uuid())
   leagueId     String
   league       League       @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  name         String
-  passwordHash String
-  predictions  Prediction[]
+  name            String
+  passwordHash    String
+  jackpotWinnings Int          @default(0)
+  predictions     Prediction[]
 
   @@unique([leagueId, name])
 }

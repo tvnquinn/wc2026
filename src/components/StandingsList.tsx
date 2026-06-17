@@ -3,6 +3,8 @@
 type StandingsEntry = {
   id: string
   name: string
+  matchPoints: number
+  jackpotWinnings: number
   totalPoints: number
   rank: number
   color: string
@@ -28,7 +30,14 @@ export default function StandingsList({ entries }: { entries: StandingsEntry[] }
             <span className="standings-card-name" style={{ color: user.color }}>
               {user.name}
             </span>
-            <span className="standings-card-points">{user.totalPoints} pts</span>
+            <div className="standings-card-scores">
+              <span className="standings-card-points">{user.totalPoints} pts</span>
+              {user.jackpotWinnings > 0 && (
+                <span className="standings-card-jackpot">
+                  {user.matchPoints} + {user.jackpotWinnings} jp
+                </span>
+              )}
+            </div>
           </div>
         </div>
       ))}
