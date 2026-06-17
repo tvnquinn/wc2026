@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { matchDisplayForLeague } from '@/lib/effectiveResults'
+import { ensureJackpotSeededForLeague } from '@/lib/recalculateJackpot'
+import JackpotBanner from '@/components/JackpotBanner'
 import PicksGrid from './PicksGrid'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +15,13 @@ export default async function PicksPage({
   const { slug } = await params
   const league = await getLeagueBySlug(slug)
 
-  const [users, matches, overrides, predictions] = await Promise.all([
+  await ensureJackpotSeededForLeague(league.id)
+
+  const [leagueRow, users, matches, overrides, predictions] = await Promise.all([
+    prisma.league.findUniqueOrThrow({
+      where: { id: league.id },
+      select: { jackpotBalance: true },
+    }),
     prisma.user.findMany({ where: { leagueId: league.id }, orderBy: { name: 'asc' } }),
     prisma.match.findMany({ orderBy: { kickoffTime: 'asc' } }),
     prisma.leagueResultOverride.findMany({ where: { leagueId: league.id } }),
@@ -28,6 +36,9 @@ export default async function PicksPage({
   return (
     <div>
       <h1>Predictions</h1>
+
+      <JackpotBanner balance={leagueRow.jackpotBalance} alwaysShow />
+
       <p style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
         Everyone&apos;s predicted scores. Blank cells mean no pick yet.
       </p>

@@ -6,6 +6,7 @@ import { assignCompetitionRanks } from '@/lib/leaderboardRank'
 import { ensureJackpotSeededForLeague } from '@/lib/recalculateJackpot'
 import { userColorMap } from '@/lib/userColors'
 import LeaderboardChart from '@/components/LeaderboardChart'
+import JackpotBanner from '@/components/JackpotBanner'
 import StandingsList from '@/components/StandingsList'
 
 export const dynamic = 'force-dynamic'
@@ -102,12 +103,7 @@ export default async function LeagueHomePage({
     <div>
       <h1>🏆 Current Standings</h1>
 
-      {leagueRow.jackpotBalance > 0 && (
-        <div className="card jackpot-banner">
-          <span className="jackpot-banner-label">Current jackpot</span>
-          <span className="jackpot-banner-amount">{leagueRow.jackpotBalance} pts</span>
-        </div>
-      )}
+      <JackpotBanner balance={leagueRow.jackpotBalance} />
 
       <LeaderboardChart data={chartData} lines={lines} xTicks={xTicks} />
 
