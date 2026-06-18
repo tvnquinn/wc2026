@@ -3,10 +3,8 @@ import { formatMD, getETDateKey, pickSparseTicks } from '@/lib/chart'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { isScoredForLeague, effectiveInputForMatch } from '@/lib/effectiveResults'
 import { assignCompetitionRanks } from '@/lib/leaderboardRank'
-import { refreshJackpotForLeague } from '@/lib/recalculateJackpot'
 import { userColorMap } from '@/lib/userColors'
 import LeaderboardChart from '@/components/LeaderboardChart'
-import JackpotBanner from '@/components/JackpotBanner'
 import StandingsList from '@/components/StandingsList'
 
 export const dynamic = 'force-dynamic'
@@ -19,13 +17,7 @@ export default async function LeagueHomePage({
   const { slug } = await params
   const league = await getLeagueBySlug(slug)
 
-  await refreshJackpotForLeague(league.id)
-
-  const [leagueRow, users, matches, overrides] = await Promise.all([
-    prisma.league.findUniqueOrThrow({
-      where: { id: league.id },
-      select: { jackpotBalance: true },
-    }),
+  const [users, matches, overrides] = await Promise.all([
     prisma.user.findMany({
       where: { leagueId: league.id },
       orderBy: { name: 'asc' },
@@ -43,13 +35,12 @@ export default async function LeagueHomePage({
     users
       .map((user) => {
         const matchPoints = user.predictions.reduce((sum, p) => sum + p.points, 0)
-        const totalPoints = matchPoints + user.jackpotWinnings
         return {
           id: user.id,
           name: user.name,
           matchPoints,
-          jackpotWinnings: user.jackpotWinnings,
-          totalPoints,
+          jackpotWinnings: 0,
+          totalPoints: matchPoints,
         }
       })
       .sort((a, b) => b.totalPoints - a.totalPoints)
@@ -102,8 +93,6 @@ export default async function LeagueHomePage({
   return (
     <div>
       <h1>🏆 Current Standings</h1>
-
-      <JackpotBanner balance={leagueRow.jackpotBalance} />
 
       <LeaderboardChart data={chartData} lines={lines} xTicks={xTicks} />
 

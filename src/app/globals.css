@@ -277,6 +277,26 @@ p { color: var(--text-muted); }
   flex: 1;
 }
 
+.predict-overlap-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}
+
+.predict-overlap-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
 .predict-side {
   display: flex;
   align-items: center;

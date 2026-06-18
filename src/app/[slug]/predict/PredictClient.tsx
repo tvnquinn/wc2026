@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import {
   submitAllPredictions,
@@ -11,7 +11,13 @@ import {
 import { Match, Prediction } from '@prisma/client'
 import TeamFlag from '@/components/TeamFlag'
 import PenaltySection from '@/components/PenaltySection'
+import PredictionOverlapNote from '@/components/PredictionOverlapNote'
 import { isKnockoutStage, isRegulationDraw, parseScoreValue } from '@/lib/penalties'
+import {
+  draftToScorePick,
+  findOverlappingNames,
+  scorePickFromStored,
+} from '@/lib/predictionOverlap'
 
 type UserOption = { id: string; name: string }
 
@@ -65,6 +71,46 @@ export default function PredictClient({
   const [mounted, setMounted] = useState(false)
 
   const isUnlocked = !!selectedUserId && sessionUserId === selectedUserId
+
+  const overlapByMatchId = useMemo(() => {
+    const userNameById = new Map(users.map((u) => [u.id, u.name]))
+    const byMatch = new Map<
+      string,
+      Array<{ userId: string; name: string; pick: ReturnType<typeof scorePickFromStored> }>
+    >()
+    for (const pred of allPredictions) {
+      const list = byMatch.get(pred.matchId) ?? []
+      list.push({
+        userId: pred.userId,
+        name: userNameById.get(pred.userId) ?? 'Unknown',
+        pick: scorePickFromStored(pred),
+      })
+      byMatch.set(pred.matchId, list)
+    }
+    return byMatch
+  }, [allPredictions, users])
+
+  const overlapNamesForMatch = (matchId: string, stage: string, draft: MatchPrediction) => {
+    if (!selectedUserId) return []
+    const saved = allPredictions.find(
+      (p) => p.userId === selectedUserId && p.matchId === matchId
+    )
+    const effectiveDraft =
+      draft.homeScore !== '' && draft.awayScore !== ''
+        ? draft
+        : saved
+          ? {
+              homeScore: saved.homeScore.toString(),
+              awayScore: saved.awayScore.toString(),
+              pkHomeScore: saved.pkHomeScore?.toString() ?? '',
+              pkAwayScore: saved.pkAwayScore?.toString() ?? '',
+            }
+          : draft
+    const pick = draftToScorePick(stage, effectiveDraft)
+    if (!pick) return []
+    const others = overlapByMatchId.get(matchId) ?? []
+    return findOverlappingNames(stage, pick, selectedUserId, others)
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -299,6 +345,7 @@ export default function PredictClient({
                     const hasGuess = homeScore !== '' && awayScore !== ''
                     const showPenalties =
                       isKnockoutStage(match.stage) && isRegulationDraw(homeScore, awayScore)
+                    const overlapNames = overlapNamesForMatch(match.id, match.stage, scores)
 
                     return (
                       <div key={match.id} className="card match-card" style={{ opacity: isLocked ? 0.7 : 1 }}>
@@ -361,6 +408,7 @@ export default function PredictClient({
                             onPkAwayChange={(val) => handleUpdatePk(match.id, 'pkAwayScore', val)}
                           />
                         )}
+                        <PredictionOverlapNote names={overlapNames} />
                       </div>
                     )
                   })}

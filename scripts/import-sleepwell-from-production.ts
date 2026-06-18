@@ -8,6 +8,7 @@
 import { PrismaClient } from '@prisma/client'
 import { hashPin } from '../src/lib/auth'
 import { ensureDefaultLeague } from '../src/lib/ensureDefaultLeague'
+import { parseProdPicksPage } from '../src/lib/parseProdPicksPage'
 import { recalculatePointsForMatch } from '../src/lib/recalculatePoints'
 import { seedGlobalMatches } from '../src/lib/seedMatches'
 
@@ -150,9 +151,27 @@ async function fetchProductionPicks(baseUrl: string): Promise<ParsedRow[]> {
   return rows
 }
 
+async function fetchProductionData(baseUrl: string) {
+  const url = `${baseUrl}/${SLEEPWELL_SLUG}/picks`
+  console.log(`Fetching ${url} ...`)
+  const res = await fetch(url, { headers: { Accept: 'text/html' } })
+  if (!res.ok) {
+    throw new Error(`Failed to fetch picks page: ${res.status} ${res.statusText}`)
+  }
+  const html = await res.text()
+  const parsed = parseProdPicksPage(html)
+  if (parsed.users.length === 0) {
+    throw new Error('No users found on production picks page (RSC parse)')
+  }
+  console.log(
+    `Parsed ${parsed.users.length} users, ${parsed.matches.length} matches, ${parsed.predictions.length} predictions`
+  )
+  return parsed
+}
+
 async function main() {
   const baseUrl = parseArgs()
-  const rows = await fetchProductionPicks(baseUrl)
+  const prod = await fetchProductionData(baseUrl)
 
   await ensureDefaultLeague()
   await seedGlobalMatches()
@@ -172,7 +191,7 @@ async function main() {
   const league = await prisma.league.findUnique({ where: { slug: SLEEPWELL_SLUG } })
   if (!league) throw new Error(`League ${SLEEPWELL_SLUG} not found`)
 
-  const userNames = rows[0]?.picks.map((p) => p.userName) ?? []
+  const userNames = prod.users
   if (userNames.length === 0) throw new Error('No users found in production picks')
 
   await prisma.prediction.deleteMany({ where: { user: { leagueId: league.id } } })
@@ -198,48 +217,55 @@ async function main() {
   let resultsSet = 0
   let unmatched = 0
 
-  for (const row of rows) {
+  for (const row of prod.matches) {
     const key = `${normalizeTeam(row.homeTeam)}|${normalizeTeam(row.awayTeam)}`
     const match = matchByTeams.get(key)
     if (!match) {
       unmatched++
-      console.warn(`  No DB match for: ${row.matchLabel}`)
+      console.warn(`  No DB match for: ${row.homeTeam} vs ${row.awayTeam}`)
       continue
     }
 
-    for (const pick of row.picks) {
-      const score = parseScore(pick.score)
-      const userId = userByName.get(pick.userName)
-      if (!score || !userId) continue
-
-      await prisma.prediction.create({
-        data: {
-          userId,
-          matchId: match.id,
-          homeScore: score.home,
-          awayScore: score.away,
-          pkHomeScore: score.pkHome,
-          pkAwayScore: score.pkAway,
-        },
-      })
-      predictionsCreated++
-    }
-
-    const result = parseScore(row.result)
-    if (result) {
+    if (row.isFinished && row.homeScore != null && row.awayScore != null) {
       await prisma.match.update({
         where: { id: match.id },
         data: {
-          homeScore: result.home,
-          awayScore: result.away,
-          pkHomeScore: result.pkHome,
-          pkAwayScore: result.pkAway,
+          homeScore: row.homeScore,
+          awayScore: row.awayScore,
+          pkHomeScore: row.pkHomeScore,
+          pkAwayScore: row.pkAwayScore,
           isFinished: true,
         },
       })
-      await recalculatePointsForMatch(match.id, match.stage)
       resultsSet++
     }
+  }
+
+  for (const pred of prod.predictions) {
+    const key = `${normalizeTeam(pred.homeTeam)}|${normalizeTeam(pred.awayTeam)}`
+    const match = matchByTeams.get(key)
+    const userId = userByName.get(pred.userName)
+    if (!match || !userId) {
+      unmatched++
+      continue
+    }
+
+    await prisma.prediction.create({
+      data: {
+        userId,
+        matchId: match.id,
+        homeScore: pred.homeScore,
+        awayScore: pred.awayScore,
+        pkHomeScore: pred.pkHomeScore,
+        pkAwayScore: pred.pkAwayScore,
+      },
+    })
+    predictionsCreated++
+  }
+
+  const finishedMatches = await prisma.match.findMany({ where: { isFinished: true } })
+  for (const match of finishedMatches) {
+    await recalculatePointsForMatch(match.id, match.stage)
   }
 
   const users = await prisma.user.findMany({
@@ -256,7 +282,7 @@ async function main() {
   console.log(`  Matches still open (no result yet): ${unfinished}`)
   if (unmatched) console.log(`  Unmatched rows: ${unmatched}`)
   console.log(`\nPlayer PIN (all users): ${DEFAULT_PIN}`)
-  console.log(`Open: http://localhost:3000/${SLEEPWELL_SLUG}`)
+  console.log(`Open: http://localhost:3000/${SLEEPWELL_SLUG}/predict`)
   console.log(`      http://localhost:3000/${SLEEPWELL_SLUG}/picks\n`)
   console.log('Leaderboard:')
   const sorted = users
