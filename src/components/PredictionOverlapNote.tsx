@@ -9,7 +9,7 @@ export default function PredictionOverlapNote({ names }: { names: string[] }) {
       <span className="predict-overlap-icon" aria-hidden="true">
         👥
       </span>
-      {message}
+      <span className="predict-overlap-text">{message}</span>
     </p>
   )
 }
