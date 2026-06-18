@@ -86,7 +86,7 @@ export async function recalculateJackpotForLeague(leagueId: string): Promise<voi
   if (userCount === 0) return
 
   const inputs = await buildJackpotInputsForLeague(leagueId)
-  const result = replayJackpot(inputs)
+  const result = replayJackpot(inputs, { now: new Date() })
 
   await prisma.$transaction(async (tx) => {
     await tx.league.update({
@@ -118,11 +118,11 @@ export async function recalculateJackpotForAllLeagues(): Promise<void> {
   }
 }
 
-export async function ensureJackpotSeededForLeague(leagueId: string): Promise<void> {
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-    select: { jackpotSeededAt: true },
-  })
-  if (!league || league.jackpotSeededAt) return
+export async function refreshJackpotForLeague(leagueId: string): Promise<void> {
   await recalculateJackpotForLeague(leagueId)
+}
+
+/** @deprecated Use refreshJackpotForLeague — always recalculates now. */
+export async function ensureJackpotSeededForLeague(leagueId: string): Promise<void> {
+  await refreshJackpotForLeague(leagueId)
 }

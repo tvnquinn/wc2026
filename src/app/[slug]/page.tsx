@@ -3,7 +3,7 @@ import { formatMD, getETDateKey, pickSparseTicks } from '@/lib/chart'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { isScoredForLeague, effectiveInputForMatch } from '@/lib/effectiveResults'
 import { assignCompetitionRanks } from '@/lib/leaderboardRank'
-import { ensureJackpotSeededForLeague } from '@/lib/recalculateJackpot'
+import { refreshJackpotForLeague } from '@/lib/recalculateJackpot'
 import { userColorMap } from '@/lib/userColors'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import JackpotBanner from '@/components/JackpotBanner'
@@ -19,7 +19,7 @@ export default async function LeagueHomePage({
   const { slug } = await params
   const league = await getLeagueBySlug(slug)
 
-  await ensureJackpotSeededForLeague(league.id)
+  await refreshJackpotForLeague(league.id)
 
   const [leagueRow, users, matches, overrides] = await Promise.all([
     prisma.league.findUniqueOrThrow({

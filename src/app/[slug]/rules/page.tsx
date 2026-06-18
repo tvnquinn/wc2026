@@ -58,7 +58,10 @@ export default function RulesPage() {
         <ul>
           <li>The jackpot starts at <strong>0</strong> when this rule begins.</li>
           <li>Matches before <strong>M25</strong> do not add to or pay out the jackpot.</li>
-          <li>After each eligible match result is entered, <strong>x</strong> is added to the pot:</li>
+          <li>
+            When an eligible match <strong>kickoff time</strong> passes, <strong>x</strong> is added to
+            the pot (you do not need to wait for the final score).
+          </li>
         </ul>
         <table className="rules-table">
           <thead>
@@ -78,17 +81,16 @@ export default function RulesPage() {
           </tbody>
         </table>
         <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>Claiming the pot</h3>
-        <p>When a result is entered for an eligible match:</p>
+        <p>When the official result is entered for an eligible match:</p>
         <ol>
-          <li>Add <strong>x</strong> for that match&apos;s stage to the current pot.</li>
           <li>Find everyone with a <strong>jackpot-winning</strong> prediction (see below).</li>
           <li>
             <strong>Exactly one</strong> winner → they win the <strong>entire</strong> pot; pot resets
             to <strong>0</strong>.
           </li>
           <li>
-            <strong>Zero</strong> winners, or <strong>two or more</strong> winners → no payout; the
-            pot (already increased) carries to the next match.
+            <strong>Zero</strong> winners, or <strong>two or more</strong> winners → no payout; the pot
+            carries to the next match.
           </li>
         </ol>
         <p>Jackpot winnings are separate from normal match points but count toward your leaderboard total.</p>

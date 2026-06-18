@@ -37,6 +37,7 @@ export type JackpotMatchInput = {
 }
 
 export type JackpotEvent =
+  | { type: 'contribution'; matchNum: string; amount: number; potAfter: number }
   | { type: 'rollover'; matchNum: string; potAfter: number; winnerCount: number }
   | { type: 'payout'; matchNum: string; userId: string; amount: number }
 
@@ -94,33 +95,46 @@ export function jackpotWinnersFromPredictions(
     .map((pred) => pred.userId)
 }
 
-export function applyJackpotForMatch(input: {
+/** Settle the pot after a finished match — no contribution increment. */
+export function applyJackpotSettlement(input: {
   pot: number
-  contribution: number
   winnerUserIds: string[]
 }): { pot: number; payout: number; winnerId: string | null } {
-  const potAfterIncrement = input.pot + input.contribution
-
   if (input.winnerUserIds.length === 1) {
     return {
       pot: 0,
-      payout: potAfterIncrement,
+      payout: input.pot,
       winnerId: input.winnerUserIds[0],
     }
   }
 
   return {
-    pot: potAfterIncrement,
+    pot: input.pot,
     payout: 0,
     winnerId: null,
   }
 }
 
+/** Legacy helper: increment pot then settle (used in unit tests). */
+export function applyJackpotForMatch(input: {
+  pot: number
+  contribution: number
+  winnerUserIds: string[]
+}): { pot: number; payout: number; winnerId: string | null } {
+  const potAfterContribution = input.pot + input.contribution
+  const settlement = applyJackpotSettlement({
+    pot: potAfterContribution,
+    winnerUserIds: input.winnerUserIds,
+  })
+  return settlement
+}
+
 export function replayJackpot(
   matches: JackpotMatchInput[],
-  options?: { fromMatchNum?: string }
+  options?: { fromMatchNum?: string; now?: Date }
 ): JackpotReplayResult {
   const fromNum = options?.fromMatchNum != null ? Number(options.fromMatchNum) : Number(JACKPOT_START_MATCH_NUM)
+  const now = options?.now ?? new Date()
 
   const sorted = [...matches].sort((a, b) => a.kickoffTime.getTime() - b.kickoffTime.getTime())
 
@@ -134,12 +148,17 @@ export function replayJackpot(
     const n = Number(matchNum)
     if (Number.isNaN(n) || n < Number(JACKPOT_START_MATCH_NUM)) continue
     if (n < fromNum) continue
+    if (match.kickoffTime.getTime() > now.getTime()) continue
+
+    const contribution = jackpotContribution(match.stage)
+    pot += contribution
+    events.push({ type: 'contribution', matchNum, amount: contribution, potAfter: pot })
+
     if (!match.actual.isFinished) continue
     if (match.actual.homeScore == null || match.actual.awayScore == null) continue
 
-    const contribution = jackpotContribution(match.stage)
     const winnerUserIds = jackpotWinnersFromPredictions(match.stage, match.actual, match.predictions)
-    const outcome = applyJackpotForMatch({ pot, contribution, winnerUserIds })
+    const outcome = applyJackpotSettlement({ pot, winnerUserIds })
 
     if (outcome.winnerId && outcome.payout > 0) {
       userWinnings[outcome.winnerId] = (userWinnings[outcome.winnerId] ?? 0) + outcome.payout

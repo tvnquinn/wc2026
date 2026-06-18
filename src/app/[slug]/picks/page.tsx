@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { matchDisplayForLeague } from '@/lib/effectiveResults'
-import { ensureJackpotSeededForLeague } from '@/lib/recalculateJackpot'
+import { refreshJackpotForLeague } from '@/lib/recalculateJackpot'
 import JackpotBanner from '@/components/JackpotBanner'
 import PicksGrid from './PicksGrid'
 
@@ -15,7 +15,7 @@ export default async function PicksPage({
   const { slug } = await params
   const league = await getLeagueBySlug(slug)
 
-  await ensureJackpotSeededForLeague(league.id)
+  await refreshJackpotForLeague(league.id)
 
   const [leagueRow, users, matches, overrides, predictions] = await Promise.all([
     prisma.league.findUniqueOrThrow({

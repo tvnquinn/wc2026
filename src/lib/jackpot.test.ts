@@ -178,30 +178,61 @@ describe('replayJackpot', () => {
   ]
 
   describe('backfill from M25', () => {
-    it('skips pre-M25, processes finished matches, pays sole winner, rolls on ties', () => {
-      const result = replayJackpot(backfillFixture())
+    it('skips pre-M25, adds at kickoff, settles when finished', () => {
+      const result = replayJackpot(backfillFixture(), { now: t(20) })
 
       expect(result.pot).toBe(2)
       expect(result.userWinnings).toEqual({ u1: 4 })
-      expect(result.events).toHaveLength(3)
-      expect(result.events[0]).toEqual({ type: 'rollover', matchNum: '25', potAfter: 2, winnerCount: 0 })
-      expect(result.events[1]).toEqual({ type: 'payout', matchNum: '26', userId: 'u1', amount: 4 })
-      expect(result.events[2]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 2, winnerCount: 2 })
+      expect(result.events).toHaveLength(6)
+      expect(result.events[0]).toEqual({ type: 'contribution', matchNum: '25', amount: 2, potAfter: 2 })
+      expect(result.events[1]).toEqual({ type: 'rollover', matchNum: '25', potAfter: 2, winnerCount: 0 })
+      expect(result.events[2]).toEqual({ type: 'contribution', matchNum: '26', amount: 2, potAfter: 4 })
+      expect(result.events[3]).toEqual({ type: 'payout', matchNum: '26', userId: 'u1', amount: 4 })
+      expect(result.events[4]).toEqual({ type: 'contribution', matchNum: '27', amount: 2, potAfter: 2 })
+      expect(result.events[5]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 2, winnerCount: 2 })
+    })
+  })
+
+  describe('kickoff contribution', () => {
+    it('adds to pot when kickoff passes even before result is entered', () => {
+      const matches = [
+        matchRow('25', 'GROUP', t(18), actual(2, 1), []),
+        matchRow('26', 'GROUP', t(19), actual(0, 0, null, null, false), []),
+      ]
+
+      const result = replayJackpot(matches, { now: t(20) })
+
+      expect(result.pot).toBe(4)
+      expect(result.userWinnings).toEqual({})
+      expect(result.events).toEqual([
+        { type: 'contribution', matchNum: '25', amount: 2, potAfter: 2 },
+        { type: 'rollover', matchNum: '25', potAfter: 2, winnerCount: 0 },
+        { type: 'contribution', matchNum: '26', amount: 2, potAfter: 4 },
+      ])
+    })
+
+    it('skips matches whose kickoff is still in the future', () => {
+      const matches = [matchRow('25', 'GROUP', t(18), actual(2, 1), [])]
+
+      const result = replayJackpot(matches, { now: t(17) })
+
+      expect(result.pot).toBe(0)
+      expect(result.events).toEqual([])
     })
   })
 
   describe('skips pre-M25 and unfinished matches', () => {
-    it('only processes M25 when M26 is unfinished', () => {
+    it('adds M26 kickoff contribution when M26 result is not in yet', () => {
       const matches = [
         matchRow('25', 'GROUP', t(18), actual(2, 1), []),
         matchRow('26', 'GROUP', t(19), actual(1, 1, null, null, false), [pred('u1', 1, 1)]),
       ]
 
-      const result = replayJackpot(matches)
+      const result = replayJackpot(matches, { now: t(20) })
 
-      expect(result.pot).toBe(2)
+      expect(result.pot).toBe(4)
       expect(result.userWinnings).toEqual({})
-      expect(result.events).toHaveLength(1)
+      expect(result.events).toHaveLength(3)
     })
   })
 
@@ -217,14 +248,14 @@ describe('replayJackpot', () => {
           : m
       )
 
-      const result = replayJackpot(corrected)
+      const result = replayJackpot(corrected, { now: t(20) })
 
       expect(result.pot).toBe(6)
       expect(result.userWinnings).toEqual({})
-      expect(result.events).toHaveLength(3)
-      expect(result.events[0]).toEqual({ type: 'rollover', matchNum: '25', potAfter: 2, winnerCount: 0 })
-      expect(result.events[1]).toEqual({ type: 'rollover', matchNum: '26', potAfter: 4, winnerCount: 2 })
-      expect(result.events[2]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 6, winnerCount: 2 })
+      expect(result.events).toHaveLength(6)
+      expect(result.events[1]).toEqual({ type: 'rollover', matchNum: '25', potAfter: 2, winnerCount: 0 })
+      expect(result.events[3]).toEqual({ type: 'rollover', matchNum: '26', potAfter: 4, winnerCount: 2 })
+      expect(result.events[5]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 6, winnerCount: 2 })
     })
 
     it('re-runs from a match forward with fromMatchNum option', () => {
@@ -238,13 +269,13 @@ describe('replayJackpot', () => {
           : m
       )
 
-      const result = replayJackpot(corrected, { fromMatchNum: '26' })
+      const result = replayJackpot(corrected, { fromMatchNum: '26', now: t(20) })
 
       expect(result.pot).toBe(4)
       expect(result.userWinnings).toEqual({})
-      expect(result.events).toHaveLength(2)
-      expect(result.events[0]).toEqual({ type: 'rollover', matchNum: '26', potAfter: 2, winnerCount: 2 })
-      expect(result.events[1]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 4, winnerCount: 2 })
+      expect(result.events).toHaveLength(4)
+      expect(result.events[1]).toEqual({ type: 'rollover', matchNum: '26', potAfter: 2, winnerCount: 2 })
+      expect(result.events[3]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 4, winnerCount: 2 })
     })
   })
 })
