@@ -10,6 +10,7 @@ import {
   type JackpotActual,
   type JackpotMatchInput,
 } from '@/lib/jackpot'
+import { ensureMatchNumsBackfilled, resolveMatchNumById } from '@/lib/matchNumResolution'
 
 function actualForLeague(
   homeScore: number | null,
@@ -28,6 +29,8 @@ function actualForLeague(
 }
 
 export async function buildJackpotInputsForLeague(leagueId: string): Promise<JackpotMatchInput[]> {
+  await ensureMatchNumsBackfilled()
+
   const [matches, overrides, predictions] = await Promise.all([
     prisma.match.findMany({ orderBy: { kickoffTime: 'asc' } }),
     prisma.leagueResultOverride.findMany({ where: { leagueId } }),
@@ -44,6 +47,8 @@ export async function buildJackpotInputsForLeague(leagueId: string): Promise<Jac
     }),
   ])
 
+  const matchNumById = resolveMatchNumById(matches)
+
   const overrideByMatchId = new Map(overrides.map((o) => [o.matchId, o]))
   const predictionsByMatchId = new Map<string, typeof predictions>()
   for (const pred of predictions) {
@@ -53,6 +58,7 @@ export async function buildJackpotInputsForLeague(leagueId: string): Promise<Jac
   }
 
   return matches
+    .map((match) => ({ ...match, matchNum: matchNumById.get(match.id) ?? match.matchNum }))
     .filter((match) => isJackpotEligibleMatch(match.matchNum))
     .map((match) => {
       const input = effectiveInputForMatch(match, overrideByMatchId.get(match.id))
