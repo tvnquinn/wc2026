@@ -87,9 +87,9 @@ export async function buildJackpotInputsForLeague(leagueId: string): Promise<Jac
     })
 }
 
-export async function recalculateJackpotForLeague(leagueId: string): Promise<void> {
+export async function recalculateJackpotForLeague(leagueId: string) {
   const userCount = await prisma.user.count({ where: { leagueId } })
-  if (userCount === 0) return
+  if (userCount === 0) return null
 
   const inputs = await buildJackpotInputsForLeague(leagueId)
   const result = replayJackpot(inputs, { now: new Date() })
@@ -115,6 +115,8 @@ export async function recalculateJackpotForLeague(leagueId: string): Promise<voi
       })
     }
   })
+
+  return result
 }
 
 export async function recalculateJackpotForAllLeagues(): Promise<void> {
@@ -124,8 +126,8 @@ export async function recalculateJackpotForAllLeagues(): Promise<void> {
   }
 }
 
-export async function refreshJackpotForLeague(leagueId: string): Promise<void> {
-  await recalculateJackpotForLeague(leagueId)
+export async function refreshJackpotForLeague(leagueId: string) {
+  return recalculateJackpotForLeague(leagueId)
 }
 
 /** @deprecated Use refreshJackpotForLeague — always recalculates now. */
