@@ -77,7 +77,7 @@ export default async function LeagueHomePage({
     jackpotPayoutsByMatchNum: jackpotPayoutsByMatchNum(jackpotReplay?.events ?? []),
   })
 
-  const xTicks = pickSparseTicks(chartData.map((d) => d.name))
+  const xTicks = pickSparseTicks(chartData.map((d) => String(d.name)))
   const lines = users.map((user) => ({
     key: user.name,
     color: colorByUserId.get(user.id) ?? '#3b82f6',
