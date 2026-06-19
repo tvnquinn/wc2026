@@ -3,6 +3,7 @@ import { formatMD, getETDateKey, pickSparseTicks } from '@/lib/chart'
 import { getLeagueBySlug } from '@/lib/leagueContext'
 import { isScoredForLeague, effectiveInputForMatch } from '@/lib/effectiveResults'
 import { assignCompetitionRanks } from '@/lib/leaderboardRank'
+import { refreshJackpotForLeague } from '@/lib/recalculateJackpot'
 import { userColorMap } from '@/lib/userColors'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import StandingsList from '@/components/StandingsList'
@@ -16,6 +17,8 @@ export default async function LeagueHomePage({
 }) {
   const { slug } = await params
   const league = await getLeagueBySlug(slug)
+
+  await refreshJackpotForLeague(league.id)
 
   const [users, matches, overrides] = await Promise.all([
     prisma.user.findMany({
@@ -35,12 +38,13 @@ export default async function LeagueHomePage({
     users
       .map((user) => {
         const matchPoints = user.predictions.reduce((sum, p) => sum + p.points, 0)
+        const totalPoints = matchPoints + user.jackpotWinnings
         return {
           id: user.id,
           name: user.name,
           matchPoints,
-          jackpotWinnings: 0,
-          totalPoints: matchPoints,
+          jackpotWinnings: user.jackpotWinnings,
+          totalPoints,
         }
       })
       .sort((a, b) => b.totalPoints - a.totalPoints)
