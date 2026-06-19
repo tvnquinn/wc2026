@@ -278,4 +278,21 @@ describe('replayJackpot', () => {
       expect(result.events[3]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 4, winnerCount: 2 })
     })
   })
+
+  describe('lifetime jackpot winnings', () => {
+    it('accumulates separate payouts when the same user wins multiple jackpots', () => {
+      const t = (day: number) => new Date(`2026-06-${String(day).padStart(2, '0')}T12:00:00Z`)
+      const matches = [
+        matchRow('25', 'GROUP', t(18), actual(1, 0), [pred('u1', 1, 0)]),
+        matchRow('26', 'GROUP', t(19), actual(2, 1), [pred('u2', 3, 0)]),
+        matchRow('27', 'GROUP', t(20), actual(0, 1), [pred('u3', 1, 0)]),
+        matchRow('28', 'GROUP', t(21), actual(3, 2), [pred('u1', 3, 2)]),
+      ]
+
+      const result = replayJackpot(matches, { now: t(22) })
+
+      expect(result.userWinnings).toEqual({ u1: 8 })
+      expect(result.pot).toBe(0)
+    })
+  })
 })

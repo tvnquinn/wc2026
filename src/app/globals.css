@@ -761,11 +761,6 @@ p { color: var(--text-muted); }
   flex-shrink: 0;
 }
 
-.standings-card-jackpot {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
 .jackpot-banner {
   display: flex;
   justify-content: space-between;
