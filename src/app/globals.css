@@ -787,14 +787,14 @@ p { color: var(--text-muted); }
 }
 
 .leaderboard-chart-card {
-  height: 320px;
+  height: 480px;
   width: 100%;
   margin-bottom: 1.5rem;
 }
 
 @media (min-width: 768px) {
   .leaderboard-chart-card {
-    height: 400px;
+    height: 600px;
     margin-bottom: 2rem;
   }
 }

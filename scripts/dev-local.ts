@@ -64,6 +64,7 @@ try {
   run('npx prisma db push --accept-data-loss --force-reset', localEnv)
   run('npx prisma generate', localEnv)
   run('npx tsx scripts/seed-local-host.ts', localEnv)
+  run('npx tsx scripts/import-prod-snapshot.ts', localEnv)
 
   console.log('\nStarting Next.js dev server (Ctrl+C restores Postgres schema)...\n')
 
