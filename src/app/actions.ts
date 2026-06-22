@@ -247,46 +247,98 @@ export async function getAdminSessionLeagueId(): Promise<string | null> {
   return parseAdminSessionToken(token)?.leagueId ?? null
 }
 
-export async function setMatchResult(
-  leagueSlug: string,
-  matchId: string,
-  homeScoreStr: string,
-  awayScoreStr: string,
-  pkHomeScoreStr?: string,
+export type MatchResultInput = {
+  matchId: string
+  homeScoreStr: string
+  awayScoreStr: string
+  pkHomeScoreStr?: string
   pkAwayScoreStr?: string
-) {
-  const league = await getLeagueBySlug(leagueSlug)
-  await requireAdminSession(league.id)
+}
 
-  const homeScore = parseInt(homeScoreStr, 10)
-  const awayScore = parseInt(awayScoreStr, 10)
+type ParsedMatchResult = {
+  homeScore: number
+  awayScore: number
+  pkHomeScore: number | null
+  pkAwayScore: number | null
+  knockoutTie: boolean
+}
+
+function parseMatchResultInput(
+  existing: { stage: string },
+  input: MatchResultInput
+): ParsedMatchResult {
+  const homeScore = parseInt(input.homeScoreStr, 10)
+  const awayScore = parseInt(input.awayScoreStr, 10)
   if (isNaN(homeScore) || isNaN(awayScore)) throw new Error('Invalid score')
 
-  const existing = await prisma.match.findUnique({ where: { id: matchId } })
-  if (!existing) throw new Error('Match not found')
-
+  const knockoutTie = isKnockoutStage(existing.stage) && homeScore === awayScore
   let pkHomeScore: number | null = null
   let pkAwayScore: number | null = null
-  const knockoutTie = isKnockoutStage(existing.stage) && homeScore === awayScore
 
   if (knockoutTie) {
-    if (!pkHomeScoreStr || !pkAwayScoreStr) {
+    if (!input.pkHomeScoreStr || !input.pkAwayScoreStr) {
       throw new Error('Knockout draw requires penalty shootout scores')
     }
-    pkHomeScore = parseInt(pkHomeScoreStr, 10)
-    pkAwayScore = parseInt(pkAwayScoreStr, 10)
+    pkHomeScore = parseInt(input.pkHomeScoreStr, 10)
+    pkAwayScore = parseInt(input.pkAwayScoreStr, 10)
     if (isNaN(pkHomeScore) || isNaN(pkAwayScore)) throw new Error('Invalid penalty score')
     if (pkHomeScore === pkAwayScore) throw new Error('Penalty shootout cannot be tied')
   }
 
+  return { homeScore, awayScore, pkHomeScore, pkAwayScore, knockoutTie }
+}
+
+function isSameStoredResult(
+  stored: {
+    homeScore: number | null
+    awayScore: number | null
+    pkHomeScore: number | null
+    pkAwayScore: number | null
+    isFinished: boolean
+  },
+  parsed: ParsedMatchResult
+): boolean {
+  return (
+    stored.isFinished &&
+    stored.homeScore === parsed.homeScore &&
+    stored.awayScore === parsed.awayScore &&
+    stored.pkHomeScore === (parsed.knockoutTie ? parsed.pkHomeScore : null) &&
+    stored.pkAwayScore === (parsed.knockoutTie ? parsed.pkAwayScore : null)
+  )
+}
+
+async function applyMatchResult(
+  league: { id: string; slug: string },
+  existing: {
+    id: string
+    stage: string
+    homeTeam: string
+    awayTeam: string
+    homeScore: number | null
+    awayScore: number | null
+    pkHomeScore: number | null
+    pkAwayScore: number | null
+    isFinished: boolean
+    nextMatchId: string | null
+    nextMatchSlot: string | null
+    loserNextMatchId: string | null
+    loserNextMatchSlot: string | null
+  },
+  parsed: ParsedMatchResult,
+  options: { skipUnchanged?: boolean; override?: { homeScore: number | null; awayScore: number | null; pkHomeScore: number | null; pkAwayScore: number | null; isFinished: boolean } | null } = {}
+): Promise<{ applied: boolean; isGroupStage: boolean }> {
   if (isGlobalScorerLeague(league.slug)) {
+    if (options.skipUnchanged && isSameStoredResult(existing, parsed)) {
+      return { applied: false, isGroupStage: false }
+    }
+
     const match = await prisma.match.update({
-      where: { id: matchId },
+      where: { id: existing.id },
       data: {
-        homeScore,
-        awayScore,
-        pkHomeScore: knockoutTie ? pkHomeScore : null,
-        pkAwayScore: knockoutTie ? pkAwayScore : null,
+        homeScore: parsed.homeScore,
+        awayScore: parsed.awayScore,
+        pkHomeScore: parsed.knockoutTie ? parsed.pkHomeScore : null,
+        pkAwayScore: parsed.knockoutTie ? parsed.pkAwayScore : null,
         isFinished: true,
       },
     })
@@ -296,10 +348,10 @@ export async function setMatchResult(
       stage: match.stage,
       homeTeam: match.homeTeam,
       awayTeam: match.awayTeam,
-      homeScore,
-      awayScore,
-      pkHomeScore: knockoutTie ? pkHomeScore : null,
-      pkAwayScore: knockoutTie ? pkAwayScore : null,
+      homeScore: parsed.homeScore,
+      awayScore: parsed.awayScore,
+      pkHomeScore: parsed.knockoutTie ? parsed.pkHomeScore : null,
+      pkAwayScore: parsed.knockoutTie ? parsed.pkAwayScore : null,
       nextMatchId: match.nextMatchId,
       nextMatchSlot: match.nextMatchSlot,
       loserNextMatchId: match.loserNextMatchId,
@@ -313,42 +365,156 @@ export async function setMatchResult(
       })
     }
 
-    if (match.stage === 'GROUP') {
-      await updateR32TeamsFromGroupStage()
-    }
-
-    await recalculatePointsForMatch(matchId, match.stage)
-    await recalculateJackpotForAllLeagues()
-  } else {
-    await prisma.leagueResultOverride.upsert({
-      where: { leagueId_matchId: { leagueId: league.id, matchId } },
-      update: {
-        homeScore,
-        awayScore,
-        pkHomeScore: knockoutTie ? pkHomeScore : null,
-        pkAwayScore: knockoutTie ? pkAwayScore : null,
-        isFinished: true,
-      },
-      create: {
-        leagueId: league.id,
-        matchId,
-        homeScore,
-        awayScore,
-        pkHomeScore: knockoutTie ? pkHomeScore : null,
-        pkAwayScore: knockoutTie ? pkAwayScore : null,
-        isFinished: true,
-      },
-    })
-
-    await recalculatePointsForMatch(matchId, existing.stage)
-    await recalculateJackpotForLeague(league.id)
+    await recalculatePointsForMatch(existing.id, match.stage)
+    return { applied: true, isGroupStage: match.stage === 'GROUP' }
   }
 
+  const stored = options.override ?? {
+    homeScore: null,
+    awayScore: null,
+    pkHomeScore: null,
+    pkAwayScore: null,
+    isFinished: false,
+  }
+
+  if (options.skipUnchanged && isSameStoredResult(stored, parsed)) {
+    return { applied: false, isGroupStage: false }
+  }
+
+  await prisma.leagueResultOverride.upsert({
+    where: { leagueId_matchId: { leagueId: league.id, matchId: existing.id } },
+    update: {
+      homeScore: parsed.homeScore,
+      awayScore: parsed.awayScore,
+      pkHomeScore: parsed.knockoutTie ? parsed.pkHomeScore : null,
+      pkAwayScore: parsed.knockoutTie ? parsed.pkAwayScore : null,
+      isFinished: true,
+    },
+    create: {
+      leagueId: league.id,
+      matchId: existing.id,
+      homeScore: parsed.homeScore,
+      awayScore: parsed.awayScore,
+      pkHomeScore: parsed.knockoutTie ? parsed.pkHomeScore : null,
+      pkAwayScore: parsed.knockoutTie ? parsed.pkAwayScore : null,
+      isFinished: true,
+    },
+  })
+
+  await recalculatePointsForMatch(existing.id, existing.stage)
+  return { applied: true, isGroupStage: false }
+}
+
+async function revalidateAllLeagues() {
   const allLeagues = await prisma.league.findMany({ select: { slug: true } })
   for (const l of allLeagues) {
     revalidateLeague(l.slug)
   }
   revalidatePath('/')
+}
+
+export async function setMatchResult(
+  leagueSlug: string,
+  matchId: string,
+  homeScoreStr: string,
+  awayScoreStr: string,
+  pkHomeScoreStr?: string,
+  pkAwayScoreStr?: string
+) {
+  const league = await getLeagueBySlug(leagueSlug)
+  await requireAdminSession(league.id)
+
+  const existing = await prisma.match.findUnique({ where: { id: matchId } })
+  if (!existing) throw new Error('Match not found')
+
+  const parsed = parseMatchResultInput(existing, {
+    matchId,
+    homeScoreStr,
+    awayScoreStr,
+    pkHomeScoreStr,
+    pkAwayScoreStr,
+  })
+
+  const override = isGlobalScorerLeague(league.slug)
+    ? null
+    : await prisma.leagueResultOverride.findUnique({
+        where: { leagueId_matchId: { leagueId: league.id, matchId } },
+      })
+
+  const { applied, isGroupStage } = await applyMatchResult(league, existing, parsed, {
+    skipUnchanged: true,
+    override,
+  })
+
+  if (!applied) return
+
+  if (isGroupStage) {
+    await updateR32TeamsFromGroupStage()
+  }
+
+  if (isGlobalScorerLeague(league.slug)) {
+    await recalculateJackpotForAllLeagues()
+  } else {
+    await recalculateJackpotForLeague(league.id)
+  }
+
+  await revalidateAllLeagues()
+}
+
+export async function setMatchResultsBatch(
+  leagueSlug: string,
+  inputs: MatchResultInput[]
+): Promise<{ appliedCount: number }> {
+  const league = await getLeagueBySlug(leagueSlug)
+  await requireAdminSession(league.id)
+
+  const matchIds = inputs.map((input) => input.matchId)
+  const [matches, overrides] = await Promise.all([
+    prisma.match.findMany({ where: { id: { in: matchIds } } }),
+    isGlobalScorerLeague(league.slug)
+      ? Promise.resolve([])
+      : prisma.leagueResultOverride.findMany({
+          where: { leagueId: league.id, matchId: { in: matchIds } },
+        }),
+  ])
+
+  const matchById = new Map(matches.map((match) => [match.id, match]))
+  const overrideByMatchId = new Map(overrides.map((override) => [override.matchId, override]))
+
+  let appliedCount = 0
+  let groupStageTouched = false
+
+  for (const input of inputs) {
+    const existing = matchById.get(input.matchId)
+    if (!existing) continue
+    if (input.homeScoreStr === '' || input.awayScoreStr === '') continue
+
+    const parsed = parseMatchResultInput(existing, input)
+    const { applied, isGroupStage } = await applyMatchResult(league, existing, parsed, {
+      skipUnchanged: true,
+      override: overrideByMatchId.get(input.matchId) ?? null,
+    })
+
+    if (applied) {
+      appliedCount++
+      if (isGroupStage) groupStageTouched = true
+    }
+  }
+
+  if (appliedCount === 0) return { appliedCount: 0 }
+
+  if (groupStageTouched) {
+    await updateR32TeamsFromGroupStage()
+  }
+
+  if (isGlobalScorerLeague(league.slug)) {
+    await recalculateJackpotForAllLeagues()
+  } else {
+    await recalculateJackpotForLeague(league.id)
+  }
+
+  await revalidateAllLeagues()
+  return { appliedCount }
 }
 
 export async function createLeague(

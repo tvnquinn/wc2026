@@ -17,12 +17,22 @@ export default function AdminMatchRow({
   override,
   scores,
   onScoresChange,
+  onSave,
+  isSaving,
+  saveSuccess,
+  isDirty,
+  canSave,
 }: {
   isGlobalScorer: boolean
   match: Match
   override: LeagueResultOverride | null
   scores: AdminScoreState
   onScoresChange: (next: AdminScoreState) => void
+  onSave: () => void
+  isSaving: boolean
+  saveSuccess: boolean
+  isDirty: boolean
+  canSave: boolean
 }) {
   const leagueFinished = isGlobalScorer ? match.isFinished : (override?.isFinished ?? false)
   const showPenalties = isKnockoutStage(match.stage) && isRegulationDraw(scores.homeScore, scores.awayScore)
@@ -100,6 +110,19 @@ export default function AdminMatchRow({
           onPkAwayChange={(val) => onScoresChange({ ...scores, pkAway: val })}
         />
       )}
+
+      <div className="admin-match-save-row">
+        <button
+          type="button"
+          className="btn admin-match-save-btn"
+          onClick={onSave}
+          disabled={isSaving || !canSave}
+          data-dirty={isDirty ? 'true' : 'false'}
+          data-success={saveSuccess ? 'true' : 'false'}
+        >
+          {isSaving ? 'Saving…' : saveSuccess ? '✓ Saved' : isDirty ? 'Save result' : 'Save'}
+        </button>
+      </div>
     </div>
   )
 }

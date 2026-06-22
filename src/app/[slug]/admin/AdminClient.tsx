@@ -8,6 +8,8 @@ import {
   loginLeagueAdmin,
   resetLeague,
   setMatchResult,
+  setMatchResultsBatch,
+  type MatchResultInput,
 } from '@/app/actions'
 import { LeagueResultOverride, Match } from '@prisma/client'
 import { isKnockoutStage, isRegulationDraw } from '@/lib/penalties'
@@ -34,6 +36,47 @@ function initialScoresForMatch(
   }
 }
 
+function scoresMatchSaved(
+  scores: AdminScoreState,
+  match: Match,
+  isGlobalScorer: boolean,
+  override: LeagueResultOverride | null | undefined
+): boolean {
+  const saved = initialScoresForMatch(match, isGlobalScorer, override)
+  return (
+    scores.homeScore === saved.homeScore &&
+    scores.awayScore === saved.awayScore &&
+    scores.pkHome === saved.pkHome &&
+    scores.pkAway === saved.pkAway
+  )
+}
+
+function canSaveMatchScores(match: Match, scores: AdminScoreState): boolean {
+  if (scores.homeScore === '' || scores.awayScore === '') return false
+  const home = parseInt(scores.homeScore, 10)
+  const away = parseInt(scores.awayScore, 10)
+  if (isNaN(home) || isNaN(away)) return false
+  const showPenalties = isKnockoutStage(match.stage) && isRegulationDraw(scores.homeScore, scores.awayScore)
+  if (showPenalties) {
+    if (scores.pkHome === '' || scores.pkAway === '') return false
+    const pkHome = parseInt(scores.pkHome, 10)
+    const pkAway = parseInt(scores.pkAway, 10)
+    if (isNaN(pkHome) || isNaN(pkAway) || pkHome === pkAway) return false
+  }
+  return true
+}
+
+function toMatchResultInput(matchId: string, scores: AdminScoreState, match: Match): MatchResultInput {
+  const showPenalties = isKnockoutStage(match.stage) && isRegulationDraw(scores.homeScore, scores.awayScore)
+  return {
+    matchId,
+    homeScoreStr: scores.homeScore,
+    awayScoreStr: scores.awayScore,
+    pkHomeScoreStr: showPenalties ? scores.pkHome : undefined,
+    pkAwayScoreStr: showPenalties ? scores.pkAway : undefined,
+  }
+}
+
 export default function AdminClient({
   leagueSlug,
   isGlobalScorer,
@@ -53,7 +96,9 @@ export default function AdminClient({
   const [isResetting, setIsResetting] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [savingMatchId, setSavingMatchId] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [savedMatchId, setSavedMatchId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
   const overrideByMatchId = useMemo(
@@ -123,36 +168,71 @@ export default function AdminClient({
     }
   }
 
-  const handleSaveAll = async () => {
-    setSaving(true)
-    setSaveSuccess(false)
-    let savedCount = 0
+  const handleSaveMatch = async (matchId: string) => {
+    const match = matches.find((m) => m.id === matchId)
+    const scores = scoresByMatchId[matchId]
+    if (!match || !scores || !canSaveMatchScores(match, scores)) return
+
+    setSavingMatchId(matchId)
+    setSavedMatchId(null)
 
     try {
-      for (const match of matches) {
-        const scores = scoresByMatchId[match.id]
-        if (!scores) continue
-        if (scores.homeScore === '' || scores.awayScore === '') continue
+      await setMatchResult(
+        leagueSlug,
+        matchId,
+        scores.homeScore,
+        scores.awayScore,
+        isKnockoutStage(match.stage) && isRegulationDraw(scores.homeScore, scores.awayScore)
+          ? scores.pkHome
+          : undefined,
+        isKnockoutStage(match.stage) && isRegulationDraw(scores.homeScore, scores.awayScore)
+          ? scores.pkAway
+          : undefined
+      )
+      setSavedMatchId(matchId)
+      router.refresh()
+      setTimeout(() => setSavedMatchId((current) => (current === matchId ? null : current)), 2000)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Save failed'
+      alert(message)
+    } finally {
+      setSavingMatchId(null)
+    }
+  }
 
-        const home = parseInt(scores.homeScore, 10)
-        const away = parseInt(scores.awayScore, 10)
-        if (isNaN(home) || isNaN(away)) continue
+  const handleSaveAll = async () => {
+    const dirtyInputs: MatchResultInput[] = []
 
-        const showPenalties = isKnockoutStage(match.stage) && isRegulationDraw(scores.homeScore, scores.awayScore)
-
-        await setMatchResult(
-          leagueSlug,
-          match.id,
-          scores.homeScore,
-          scores.awayScore,
-          showPenalties ? scores.pkHome : undefined,
-          showPenalties ? scores.pkAway : undefined
+    for (const match of matches) {
+      const scores = scoresByMatchId[match.id]
+      if (!scores) continue
+      if (!canSaveMatchScores(match, scores)) continue
+      if (
+        scoresMatchSaved(
+          scores,
+          match,
+          isGlobalScorer,
+          overrideByMatchId.get(match.id)
         )
-        savedCount++
+      ) {
+        continue
       }
+      dirtyInputs.push(toMatchResultInput(match.id, scores, match))
+    }
 
-      if (savedCount === 0) {
-        alert('Enter at least one match score before saving.')
+    if (dirtyInputs.length === 0) {
+      alert('No changed results to save.')
+      return
+    }
+
+    setSaving(true)
+    setSaveSuccess(false)
+
+    try {
+      const { appliedCount } = await setMatchResultsBatch(leagueSlug, dirtyInputs)
+
+      if (appliedCount === 0) {
+        alert('No changed results to save.')
         return
       }
 
@@ -221,18 +301,27 @@ export default function AdminClient({
         </div>
       </div>
 
-      {matches.map((match) => (
-        <AdminMatchRow
-          key={match.id}
-          isGlobalScorer={isGlobalScorer}
-          match={match}
-          override={overrideByMatchId.get(match.id) ?? null}
-          scores={scoresByMatchId[match.id]}
-          onScoresChange={(next) =>
-            setScoresByMatchId((prev) => ({ ...prev, [match.id]: next }))
-          }
-        />
-      ))}
+      {matches.map((match) => {
+        const scores = scoresByMatchId[match.id]
+        const override = overrideByMatchId.get(match.id) ?? null
+        return (
+          <AdminMatchRow
+            key={match.id}
+            isGlobalScorer={isGlobalScorer}
+            match={match}
+            override={override}
+            scores={scores}
+            onScoresChange={(next) =>
+              setScoresByMatchId((prev) => ({ ...prev, [match.id]: next }))
+            }
+            onSave={() => handleSaveMatch(match.id)}
+            isSaving={savingMatchId === match.id}
+            saveSuccess={savedMatchId === match.id}
+            isDirty={!scoresMatchSaved(scores, match, isGlobalScorer, override)}
+            canSave={canSaveMatchScores(match, scores)}
+          />
+        )
+      })}
 
       {mounted &&
         createPortal(
@@ -249,7 +338,7 @@ export default function AdminClient({
                 border: '2px solid #000',
               }}
             >
-              {saving ? 'Saving...' : saveSuccess ? '✓ All Results Saved' : '💾 Save All Results'}
+              {saving ? 'Saving...' : saveSuccess ? '✓ Changed Results Saved' : '💾 Save Changed Results'}
             </button>
           </div>,
           document.body
