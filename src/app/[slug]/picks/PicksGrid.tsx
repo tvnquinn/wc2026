@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { formatMatchNumLabel } from '@/lib/formatMatchNum'
 import { formatScoreDisplay } from '@/lib/penalties'
 import { userColorMap } from '@/lib/userColors'
+import FinishedMatchesToggle from '@/components/FinishedMatchesToggle'
 
 type User = { id: string; name: string }
 type Match = {
@@ -80,15 +81,11 @@ export default function PicksGrid({
   return (
     <div className="picks-view">
       {finishedCount > 0 && (
-        <button
-          type="button"
-          className="btn picks-finished-toggle"
-          onClick={() => setShowFinished((open) => !open)}
-        >
-          {showFinished
-            ? `Hide ${finishedCount} completed match${finishedCount === 1 ? '' : 'es'}`
-            : `Show ${finishedCount} completed match${finishedCount === 1 ? '' : 'es'}`}
-        </button>
+        <FinishedMatchesToggle
+          finishedCount={finishedCount}
+          showFinished={showFinished}
+          onToggle={() => setShowFinished((open) => !open)}
+        />
       )}
 
       <div className="picks-mobile-cards">

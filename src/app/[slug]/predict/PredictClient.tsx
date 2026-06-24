@@ -12,6 +12,7 @@ import { Match, Prediction } from '@prisma/client'
 import TeamFlag from '@/components/TeamFlag'
 import PenaltySection from '@/components/PenaltySection'
 import PredictionOverlapNote from '@/components/PredictionOverlapNote'
+import FinishedMatchesToggle from '@/components/FinishedMatchesToggle'
 import { isKnockoutStage, isRegulationDraw, parseScoreValue } from '@/lib/penalties'
 import {
   draftToScorePick,
@@ -69,6 +70,7 @@ export default function PredictClient({
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [showFinished, setShowFinished] = useState(false)
 
   const isUnlocked = !!selectedUserId && sessionUserId === selectedUserId
 
@@ -251,7 +253,9 @@ export default function PredictClient({
   }
 
   const stageOrder = ['GROUP', 'R32', 'R16', 'QF', 'SF', 'THIRD', 'FINAL']
-  const stages = stageOrder.filter(s => matches.some(m => m.stage === s))
+  const finishedCount = matches.filter((m) => m.isFinished).length
+  const visibleMatches = showFinished ? matches : matches.filter((m) => !m.isFinished)
+  const stages = stageOrder.filter((s) => visibleMatches.some((m) => m.stage === s))
   const now = new Date()
 
   return (
@@ -331,13 +335,22 @@ export default function PredictClient({
 
       {isUnlocked && matches.length > 0 ? (
         <div className="predict-with-save-bar">
-          {stages.map(stage => {
-            const stageMatches = matches.filter(m => m.stage === stage)
+          <FinishedMatchesToggle
+            finishedCount={finishedCount}
+            showFinished={showFinished}
+            onToggle={() => setShowFinished((open) => !open)}
+          />
+
+          {visibleMatches.length === 0 ? (
+            <p className="picks-empty">No upcoming matches — expand completed matches to review past picks.</p>
+          ) : (
+            stages.map((stage) => {
+            const stageMatches = visibleMatches.filter((m) => m.stage === stage)
             return (
               <div key={stage} style={{ marginBottom: '2rem' }}>
                 <h3 style={{ borderBottom: '2px solid var(--text)', paddingBottom: '0.35rem', marginBottom: '0.75rem', color: 'var(--text)' }}>{stage} STAGE</h3>
                 <div className="match-card-list">
-                  {stageMatches.map(match => {
+                  {stageMatches.map((match) => {
                     const isLocked = scoredSet.has(match.id) || now >= new Date(match.kickoffTime)
                     const scores = predictions[match.id] || emptyPrediction()
                     const homeScore = scores.homeScore
@@ -415,7 +428,8 @@ export default function PredictClient({
                 </div>
               </div>
             )
-          })}
+          })
+          )}
 
           {mounted && createPortal(
             <div className="predict-save-bar">

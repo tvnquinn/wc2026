@@ -13,6 +13,7 @@ import {
 } from '@/app/actions'
 import { LeagueResultOverride, Match } from '@prisma/client'
 import { isKnockoutStage, isRegulationDraw } from '@/lib/penalties'
+import FinishedMatchesToggle from '@/components/FinishedMatchesToggle'
 import AdminMatchRow, { type AdminScoreState } from './AdminMatchRow'
 
 function initialScoresForMatch(
@@ -77,6 +78,15 @@ function toMatchResultInput(matchId: string, scores: AdminScoreState, match: Mat
   }
 }
 
+function isAdminMatchFinished(
+  match: Match,
+  isGlobalScorer: boolean,
+  override: LeagueResultOverride | null | undefined
+): boolean {
+  if (isGlobalScorer) return match.isFinished
+  return override?.isFinished ?? match.isFinished
+}
+
 export default function AdminClient({
   leagueSlug,
   isGlobalScorer,
@@ -99,11 +109,30 @@ export default function AdminClient({
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [savedMatchId, setSavedMatchId] = useState<string | null>(null)
+  const [showFinished, setShowFinished] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   const overrideByMatchId = useMemo(
     () => new Map(overrides.map((o) => [o.matchId, o])),
     [overrides]
+  )
+
+  const finishedCount = useMemo(
+    () =>
+      matches.filter((match) =>
+        isAdminMatchFinished(match, isGlobalScorer, overrideByMatchId.get(match.id))
+      ).length,
+    [matches, isGlobalScorer, overrideByMatchId]
+  )
+
+  const visibleMatches = useMemo(
+    () =>
+      showFinished
+        ? matches
+        : matches.filter(
+            (match) => !isAdminMatchFinished(match, isGlobalScorer, overrideByMatchId.get(match.id))
+          ),
+    [matches, showFinished, isGlobalScorer, overrideByMatchId]
   )
 
   const [scoresByMatchId, setScoresByMatchId] = useState<Record<string, AdminScoreState>>(() => {
@@ -301,7 +330,16 @@ export default function AdminClient({
         </div>
       </div>
 
-      {matches.map((match) => {
+      <FinishedMatchesToggle
+        finishedCount={finishedCount}
+        showFinished={showFinished}
+        onToggle={() => setShowFinished((open) => !open)}
+      />
+
+      {visibleMatches.length === 0 ? (
+        <p className="picks-empty">No upcoming matches — expand completed matches to enter past results.</p>
+      ) : (
+        visibleMatches.map((match) => {
         const scores = scoresByMatchId[match.id]
         const override = overrideByMatchId.get(match.id) ?? null
         return (
@@ -321,7 +359,8 @@ export default function AdminClient({
             canSave={canSaveMatchScores(match, scores)}
           />
         )
-      })}
+      })
+      )}
 
       {mounted &&
         createPortal(
