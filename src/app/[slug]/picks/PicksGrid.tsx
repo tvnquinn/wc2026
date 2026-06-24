@@ -58,12 +58,14 @@ export default function PicksGrid({
   matches,
   users,
   predictions,
+  collapseCompletedMatches = true,
 }: {
   matches: Match[]
   users: User[]
   predictions: Prediction[]
+  collapseCompletedMatches?: boolean
 }) {
-  const [showFinished, setShowFinished] = useState(false)
+  const [showFinished, setShowFinished] = useState(!collapseCompletedMatches)
 
   const colors = useMemo(() => userColorMap(users), [users])
 
@@ -76,11 +78,12 @@ export default function PicksGrid({
   }, [predictions])
 
   const finishedCount = matches.filter((m) => m.isFinished).length
-  const visibleMatches = showFinished ? matches : matches.filter((m) => !m.isFinished)
+  const visibleMatches =
+    !collapseCompletedMatches || showFinished ? matches : matches.filter((m) => !m.isFinished)
 
   return (
     <div className="picks-view">
-      {finishedCount > 0 && (
+      {collapseCompletedMatches && finishedCount > 0 && (
         <FinishedMatchesToggle
           finishedCount={finishedCount}
           showFinished={showFinished}

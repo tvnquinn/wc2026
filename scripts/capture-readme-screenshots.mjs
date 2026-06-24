@@ -1,5 +1,5 @@
 /**
- * Capture README screenshots from local dev (wc26-demo league).
+ * Capture README screenshots from local dev (/demo league).
  * Usage: npm run dev & node scripts/capture-readme-screenshots.mjs
  */
 import { chromium } from 'playwright'
@@ -7,7 +7,7 @@ import { mkdir } from 'node:fs/promises'
 
 const base = process.argv[2] || 'http://localhost:3000'
 const outDir = 'docs/screenshots'
-const demo = `${base}/wc26-demo`
+const demo = `${base}/demo`
 const VIEWPORT = { width: 1280, height: 900 }
 const ROW_LIMIT = 6
 

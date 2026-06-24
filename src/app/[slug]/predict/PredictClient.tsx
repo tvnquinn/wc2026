@@ -13,6 +13,7 @@ import TeamFlag from '@/components/TeamFlag'
 import PenaltySection from '@/components/PenaltySection'
 import PredictionOverlapNote from '@/components/PredictionOverlapNote'
 import FinishedMatchesToggle from '@/components/FinishedMatchesToggle'
+import { isDemoLeague, DEMO_ADMIN_PASSWORD, DEMO_PLAYER_PIN } from '@/lib/demo'
 import { isKnockoutStage, isRegulationDraw, parseScoreValue } from '@/lib/penalties'
 import {
   draftToScorePick,
@@ -60,6 +61,7 @@ export default function PredictClient({
   initialSessionUserId: string | null
 }) {
   const scoredSet = new Set(scoredMatchIds)
+  const isDemo = isDemoLeague(leagueSlug)
   const [selectedUserId, setSelectedUserId] = useState<string>(initialSessionUserId ?? '')
   const [sessionUserId, setSessionUserId] = useState<string | null>(initialSessionUserId)
   const [newUserName, setNewUserName] = useState<string>('')
@@ -70,7 +72,7 @@ export default function PredictClient({
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [showFinished, setShowFinished] = useState(false)
+  const [showFinished, setShowFinished] = useState(isDemo)
 
   const isUnlocked = !!selectedUserId && sessionUserId === selectedUserId
 
@@ -254,7 +256,8 @@ export default function PredictClient({
 
   const stageOrder = ['GROUP', 'R32', 'R16', 'QF', 'SF', 'THIRD', 'FINAL']
   const finishedCount = matches.filter((m) => m.isFinished).length
-  const visibleMatches = showFinished ? matches : matches.filter((m) => !m.isFinished)
+  const visibleMatches =
+    isDemo || showFinished ? matches : matches.filter((m) => !m.isFinished)
   const stages = stageOrder.filter((s) => visibleMatches.some((m) => m.stage === s))
   const now = new Date()
 
@@ -335,11 +338,13 @@ export default function PredictClient({
 
       {isUnlocked && matches.length > 0 ? (
         <div className="predict-with-save-bar">
-          <FinishedMatchesToggle
-            finishedCount={finishedCount}
-            showFinished={showFinished}
-            onToggle={() => setShowFinished((open) => !open)}
-          />
+          {!isDemo && (
+            <FinishedMatchesToggle
+              finishedCount={finishedCount}
+              showFinished={showFinished}
+              onToggle={() => setShowFinished((open) => !open)}
+            />
+          )}
 
           {visibleMatches.length === 0 ? (
             <p className="picks-empty">No upcoming matches — expand completed matches to review past picks.</p>
@@ -442,7 +447,16 @@ export default function PredictClient({
         </div>
       ) : selectedUserId && !isUnlocked ? (
         <div className="card" style={{ textAlign: 'center' }}>
-          <p>Enter your 4-digit PIN above to edit predictions for this profile.</p>
+          <p>
+            Enter your 4-digit PIN above to edit predictions for this profile.
+            {isDemo && (
+              <>
+                {' '}
+                Demo player PIN: <strong>{DEMO_PLAYER_PIN}</strong> · Admin password:{' '}
+                <strong>{DEMO_ADMIN_PASSWORD}</strong>
+              </>
+            )}
+          </p>
         </div>
       ) : selectedUserId ? (
         <div className="card" style={{ marginTop: '2rem', textAlign: 'center' }}>

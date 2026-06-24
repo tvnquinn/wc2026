@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { getLeagueBySlug } from '@/lib/leagueContext'
+import { isDemoLeague } from '@/lib/demo'
 import { matchDisplayForLeague } from '@/lib/effectiveResults'
 import { refreshJackpotForLeague } from '@/lib/recalculateJackpot'
 import JackpotBanner from '@/components/JackpotBanner'
@@ -42,7 +43,12 @@ export default async function PicksPage({
       <p style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
         Everyone&apos;s predicted scores. Blank cells mean no pick yet.
       </p>
-      <PicksGrid matches={leagueMatches} users={users} predictions={predictions} />
+      <PicksGrid
+        matches={leagueMatches}
+        users={users}
+        predictions={predictions}
+        collapseCompletedMatches={!isDemoLeague(slug)}
+      />
     </div>
   )
 }

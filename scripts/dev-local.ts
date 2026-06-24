@@ -65,7 +65,11 @@ try {
   run('npx prisma generate', localEnv)
   run('npx tsx scripts/seed-local-host.ts', localEnv)
   run('npx tsx scripts/import-prod-snapshot.ts', localEnv)
+  run('npx tsx scripts/seed-demo-league.ts', localEnv)
 
+  console.log('\nLocal leagues:')
+  console.log('  http://localhost:3000/sleepwell — prod mirror')
+  console.log('  http://localhost:3000/demo — fake data (admin: demo, player PIN: 1234)')
   console.log('\nStarting Next.js dev server (Ctrl+C restores Postgres schema)...\n')
 
   devProcess = spawn('npx', ['next', 'dev'], {

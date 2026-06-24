@@ -1,20 +1,26 @@
 /**
- * Seeds wc26-demo only: 10 participants, random predictions, league-only results.
+ * Seeds /demo only: 10 participants, random predictions, league-only results.
  * Does NOT modify global Match scores — sleepwell and other leagues stay untouched.
  *
- * Usage: npx tsx scripts/seed-demo-league.ts
+ * Usage: npm run seed:demo
  */
 import { PrismaClient } from '@prisma/client'
 import { isKnockoutStage } from '../src/lib/penalties'
 import { resolveEffectiveResult } from '../src/lib/effectiveResults'
 import { computePredictionPoints } from '../src/lib/scoring'
 import { hashPin } from '../src/lib/auth'
+import {
+  DEMO_ADMIN_PASSWORD,
+  DEMO_LEAGUE_SLUG,
+  DEMO_PLAYER_PIN,
+} from '../src/lib/demo'
 
 const prisma = new PrismaClient()
 
-const DEMO_SLUG = 'wc26-demo'
+const DEMO_SLUG = DEMO_LEAGUE_SLUG
+const LEGACY_DEMO_SLUG = 'wc26-demo'
 const DEMO_NAME = 'Demo Showcase'
-const DEMO_ADMIN = 'demo'
+const DEMO_ADMIN = DEMO_ADMIN_PASSWORD
 const PARTICIPANTS = [
   'Alex',
   'Blake',
@@ -27,7 +33,7 @@ const PARTICIPANTS = [
   'Ivan',
   'Jules',
 ]
-const PIN = '1234'
+const PIN = DEMO_PLAYER_PIN
 
 type PlannedResult = {
   homeScore: number
@@ -174,7 +180,20 @@ async function main() {
     throw new Error('No matches in DB — run: npx tsx scripts/seed-schedule.ts')
   }
 
+  const legacyLeague = await prisma.league.findUnique({ where: { slug: LEGACY_DEMO_SLUG } })
+  if (legacyLeague) {
+    await prisma.league.delete({ where: { id: legacyLeague.id } })
+  }
+
   let league = await prisma.league.findUnique({ where: { slug: DEMO_SLUG } })
+  if (league && process.env.DEMO_RESEED !== '1') {
+    const userCount = await prisma.user.count({ where: { leagueId: league.id } })
+    if (userCount > 0) {
+      console.log(`Demo league already seeded at /${DEMO_SLUG} (${userCount} users).`)
+      return
+    }
+  }
+
   if (league) {
     await prisma.prediction.deleteMany({ where: { user: { leagueId: league.id } } })
     await prisma.user.deleteMany({ where: { leagueId: league.id } })

@@ -1,5 +1,5 @@
 {
   "name": "wc26pool",
   "framework": "nextjs",
-  "buildCommand": "prisma migrate deploy && next build"
+  "buildCommand": "prisma migrate deploy && tsx scripts/seed-demo-league.ts && next build"
 }

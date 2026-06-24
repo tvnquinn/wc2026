@@ -13,6 +13,7 @@ import {
 } from '@/app/actions'
 import { LeagueResultOverride, Match } from '@prisma/client'
 import { isKnockoutStage, isRegulationDraw } from '@/lib/penalties'
+import { isDemoLeague } from '@/lib/demo'
 import FinishedMatchesToggle from '@/components/FinishedMatchesToggle'
 import AdminMatchRow, { type AdminScoreState } from './AdminMatchRow'
 
@@ -109,7 +110,7 @@ export default function AdminClient({
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [savedMatchId, setSavedMatchId] = useState<string | null>(null)
-  const [showFinished, setShowFinished] = useState(false)
+  const [showFinished, setShowFinished] = useState(isDemoLeague(leagueSlug))
   const [mounted, setMounted] = useState(false)
 
   const overrideByMatchId = useMemo(
@@ -125,14 +126,16 @@ export default function AdminClient({
     [matches, isGlobalScorer, overrideByMatchId]
   )
 
+  const isDemo = isDemoLeague(leagueSlug)
+
   const visibleMatches = useMemo(
     () =>
-      showFinished
+      isDemo || showFinished
         ? matches
         : matches.filter(
             (match) => !isAdminMatchFinished(match, isGlobalScorer, overrideByMatchId.get(match.id))
           ),
-    [matches, showFinished, isGlobalScorer, overrideByMatchId]
+    [matches, showFinished, isGlobalScorer, overrideByMatchId, isDemo]
   )
 
   const [scoresByMatchId, setScoresByMatchId] = useState<Record<string, AdminScoreState>>(() => {
@@ -330,11 +333,13 @@ export default function AdminClient({
         </div>
       </div>
 
-      <FinishedMatchesToggle
-        finishedCount={finishedCount}
-        showFinished={showFinished}
-        onToggle={() => setShowFinished((open) => !open)}
-      />
+      {!isDemo && (
+        <FinishedMatchesToggle
+          finishedCount={finishedCount}
+          showFinished={showFinished}
+          onToggle={() => setShowFinished((open) => !open)}
+        />
+      )}
 
       {visibleMatches.length === 0 ? (
         <p className="picks-empty">No upcoming matches — expand completed matches to enter past results.</p>
