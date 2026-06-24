@@ -50,9 +50,9 @@ export default function RulesPage() {
       <div className="card rules-content" style={{ marginBottom: '1.5rem' }}>
         <h2>Score Jackpot (from M25 — Czechia vs South Africa)</h2>
         <p>
-          A separate <strong>jackpot</strong> runs alongside normal points. It rewards{' '}
-          <strong>sole</strong> exact-score picks and rolls over when zero or multiple players hit
-          the exact line.
+          A separate <strong>jackpot</strong> runs alongside normal points. It rewards exact-score
+          picks (or the correct penalty winner in knockout draws) and rolls over when nobody wins a
+          match slice.
         </p>
         <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>Pot growth</h3>
         <ul>
@@ -81,16 +81,23 @@ export default function RulesPage() {
           </tbody>
         </table>
         <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>Claiming the pot</h3>
-        <p>When the official result is entered for an eligible match:</p>
+        <p>When official results are entered for eligible matches:</p>
         <ol>
           <li>Find everyone with a <strong>jackpot-winning</strong> prediction (see below).</li>
           <li>
-            <strong>Exactly one</strong> winner → they win the <strong>entire</strong> pot; pot resets
-            to <strong>0</strong>.
+            Matches that <strong>kick off at the same time</strong> settle together. The current pot
+            is split evenly across those matches.
           </li>
           <li>
-            <strong>Zero</strong> winners, or <strong>two or more</strong> winners → no payout; the pot
-            carries to the next match.
+            <strong>Exactly one</strong> winner on a match → that player wins that match&apos;s slice.
+          </li>
+          <li>
+            <strong>Zero</strong> winners on a match, or <strong>two or more</strong> winners on the
+            same match → that slice stays in the pot.
+          </li>
+          <li>
+            If you are the only winner across every simultaneous match in the group, you take the
+            whole pot.
           </li>
         </ol>
         <p>Jackpot winnings are separate from normal match points but count toward your leaderboard total.</p>

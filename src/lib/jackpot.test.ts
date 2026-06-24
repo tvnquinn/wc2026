@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyJackpotBatchSettlement,
   applyJackpotForMatch,
   isJackpotEligibleMatch,
   isJackpotWin,
@@ -147,6 +148,69 @@ describe('jackpotWinnersFromPredictions', () => {
   })
 })
 
+describe('applyJackpotBatchSettlement', () => {
+  it('splits the pot evenly across simultaneous matches', () => {
+    const outcome = applyJackpotBatchSettlement({
+      pot: 4,
+      matches: [
+        { matchNum: '25', winnerUserIds: ['u1'] },
+        { matchNum: '26', winnerUserIds: ['u2'] },
+      ],
+    })
+
+    expect(outcome.pot).toBe(0)
+    expect(outcome.payouts).toEqual([
+      { matchNum: '25', userId: 'u1', amount: 2 },
+      { matchNum: '26', userId: 'u2', amount: 2 },
+    ])
+    expect(outcome.rollovers).toEqual([])
+  })
+
+  it('lets one winner take the whole pot when they win every simultaneous match', () => {
+    const outcome = applyJackpotBatchSettlement({
+      pot: 4,
+      matches: [
+        { matchNum: '25', winnerUserIds: ['u1'] },
+        { matchNum: '26', winnerUserIds: ['u1'] },
+      ],
+    })
+
+    expect(outcome.pot).toBe(0)
+    expect(outcome.payouts).toEqual([
+      { matchNum: '25', userId: 'u1', amount: 2 },
+      { matchNum: '26', userId: 'u1', amount: 2 },
+    ])
+  })
+
+  it('pays only the winning match slice when the other simultaneous match has no winner', () => {
+    const outcome = applyJackpotBatchSettlement({
+      pot: 4,
+      matches: [
+        { matchNum: '25', winnerUserIds: ['u1'] },
+        { matchNum: '26', winnerUserIds: [] },
+      ],
+    })
+
+    expect(outcome.pot).toBe(2)
+    expect(outcome.payouts).toEqual([{ matchNum: '25', userId: 'u1', amount: 2 }])
+    expect(outcome.rollovers).toEqual([{ matchNum: '26', amount: 2, winnerCount: 0 }])
+  })
+
+  it('keeps the whole pot when nobody wins any simultaneous match', () => {
+    const outcome = applyJackpotBatchSettlement({
+      pot: 4,
+      matches: [
+        { matchNum: '25', winnerUserIds: [] },
+        { matchNum: '26', winnerUserIds: [] },
+      ],
+    })
+
+    expect(outcome.pot).toBe(4)
+    expect(outcome.payouts).toEqual([])
+    expect(outcome.rollovers).toHaveLength(2)
+  })
+})
+
 describe('applyJackpotForMatch', () => {
     it.each([
       [{ pot: 0, contribution: 2, winnerUserIds: [] as string[] }, { pot: 2, payout: 0, winnerId: null }],
@@ -276,6 +340,59 @@ describe('replayJackpot', () => {
       expect(result.events).toHaveLength(4)
       expect(result.events[1]).toEqual({ type: 'rollover', matchNum: '26', potAfter: 2, winnerCount: 2 })
       expect(result.events[3]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 4, winnerCount: 2 })
+    })
+  })
+
+  describe('simultaneous kickoffs', () => {
+    const sameKickoff = t(18)
+
+    it('pays only the winning match slice when the other simultaneous match has no winner', () => {
+      const matches = [
+        matchRow('25', 'GROUP', sameKickoff, actual(1, 0), [pred('u1', 1, 0)]),
+        matchRow('26', 'GROUP', sameKickoff, actual(2, 1), [pred('u2', 0, 0)]),
+      ]
+
+      const result = replayJackpot(matches, { now: t(19) })
+
+      expect(result.pot).toBe(2)
+      expect(result.userWinnings).toEqual({ u1: 2 })
+    })
+
+    it('splits the pot when different players win simultaneous matches', () => {
+      const matches = [
+        matchRow('25', 'GROUP', sameKickoff, actual(1, 0), [pred('u1', 1, 0)]),
+        matchRow('26', 'GROUP', sameKickoff, actual(2, 1), [pred('u2', 2, 1)]),
+      ]
+
+      const result = replayJackpot(matches, { now: t(19) })
+
+      expect(result.pot).toBe(0)
+      expect(result.userWinnings).toEqual({ u1: 2, u2: 2 })
+    })
+
+    it('lets one player take the whole simultaneous pot when they win both matches', () => {
+      const matches = [
+        matchRow('25', 'GROUP', sameKickoff, actual(1, 0), [pred('u1', 1, 0)]),
+        matchRow('26', 'GROUP', sameKickoff, actual(2, 1), [pred('u1', 2, 1)]),
+      ]
+
+      const result = replayJackpot(matches, { now: t(19) })
+
+      expect(result.pot).toBe(0)
+      expect(result.userWinnings).toEqual({ u1: 4 })
+    })
+
+    it('waits to settle until every simultaneous match has a result', () => {
+      const matches = [
+        matchRow('25', 'GROUP', sameKickoff, actual(1, 0), [pred('u1', 1, 0)]),
+        matchRow('26', 'GROUP', sameKickoff, actual(0, 0, null, null, false), [pred('u2', 0, 0)]),
+      ]
+
+      const result = replayJackpot(matches, { now: t(19) })
+
+      expect(result.pot).toBe(4)
+      expect(result.userWinnings).toEqual({})
+      expect(result.events.filter((event) => event.type === 'payout')).toHaveLength(0)
     })
   })
 

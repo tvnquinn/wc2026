@@ -95,21 +95,69 @@ export function jackpotWinnersFromPredictions(
     .map((pred) => pred.userId)
 }
 
-/** Settle the pot after a finished match — no contribution increment. */
+/** Settle the pot after one or more finished matches that kicked off together. */
+export function applyJackpotBatchSettlement(input: {
+  pot: number
+  matches: Array<{
+    matchNum: string
+    winnerUserIds: string[]
+  }>
+}): {
+  pot: number
+  payouts: Array<{ matchNum: string; userId: string; amount: number }>
+  rollovers: Array<{ matchNum: string; amount: number; winnerCount: number }>
+} {
+  const n = input.matches.length
+  if (n === 0) {
+    return { pot: input.pot, payouts: [], rollovers: [] }
+  }
+
+  const baseSlice = Math.floor(input.pot / n)
+  const remainder = input.pot % n
+  let pot = remainder
+  const payouts: Array<{ matchNum: string; userId: string; amount: number }> = []
+  const rollovers: Array<{ matchNum: string; amount: number; winnerCount: number }> = []
+
+  for (const match of input.matches) {
+    if (match.winnerUserIds.length === 1) {
+      payouts.push({
+        matchNum: match.matchNum,
+        userId: match.winnerUserIds[0],
+        amount: baseSlice,
+      })
+    } else {
+      pot += baseSlice
+      rollovers.push({
+        matchNum: match.matchNum,
+        amount: baseSlice,
+        winnerCount: match.winnerUserIds.length,
+      })
+    }
+  }
+
+  return { pot, payouts, rollovers }
+}
+
+/** Settle the pot after a single finished match — no contribution increment. */
 export function applyJackpotSettlement(input: {
   pot: number
   winnerUserIds: string[]
 }): { pot: number; payout: number; winnerId: string | null } {
-  if (input.winnerUserIds.length === 1) {
+  const outcome = applyJackpotBatchSettlement({
+    pot: input.pot,
+    matches: [{ matchNum: '_', winnerUserIds: input.winnerUserIds }],
+  })
+
+  if (outcome.payouts.length === 1) {
     return {
-      pot: 0,
-      payout: input.pot,
-      winnerId: input.winnerUserIds[0],
+      pot: outcome.pot,
+      payout: outcome.payouts[0].amount,
+      winnerId: outcome.payouts[0].userId,
     }
   }
 
   return {
-    pot: input.pot,
+    pot: outcome.pot,
     payout: 0,
     winnerId: null,
   }
@@ -136,44 +184,78 @@ export function replayJackpot(
   const fromNum = options?.fromMatchNum != null ? Number(options.fromMatchNum) : Number(JACKPOT_START_MATCH_NUM)
   const now = options?.now ?? new Date()
 
-  const sorted = [...matches].sort((a, b) => a.kickoffTime.getTime() - b.kickoffTime.getTime())
+  const sorted = [...matches].sort(
+    (a, b) =>
+      a.kickoffTime.getTime() - b.kickoffTime.getTime() ||
+      Number(a.matchNum ?? 0) - Number(b.matchNum ?? 0)
+  )
 
-  let pot = 0
-  const userWinnings: Record<string, number> = {}
-  const events: JackpotEvent[] = []
-
+  const batches: JackpotMatchInput[][] = []
   for (const match of sorted) {
     if (!match.matchNum?.trim()) continue
     const matchNum = match.matchNum.trim()
     const n = Number(matchNum)
     if (Number.isNaN(n) || n < Number(JACKPOT_START_MATCH_NUM)) continue
-    if (n < fromNum) continue
-    if (match.kickoffTime.getTime() > now.getTime()) continue
 
-    const contribution = jackpotContribution(match.stage)
-    pot += contribution
-    events.push({ type: 'contribution', matchNum, amount: contribution, potAfter: pot })
+    const lastBatch = batches[batches.length - 1]
+    if (lastBatch && lastBatch[0].kickoffTime.getTime() === match.kickoffTime.getTime()) {
+      lastBatch.push(match)
+    } else {
+      batches.push([match])
+    }
+  }
 
-    if (!match.actual.isFinished) continue
-    if (match.actual.homeScore == null || match.actual.awayScore == null) continue
+  let pot = 0
+  const userWinnings: Record<string, number> = {}
+  const events: JackpotEvent[] = []
 
-    const winnerUserIds = jackpotWinnersFromPredictions(match.stage, match.actual, match.predictions)
-    const outcome = applyJackpotSettlement({ pot, winnerUserIds })
+  for (const batch of batches) {
+    const activeMatches = batch.filter((match) => {
+      const n = Number(match.matchNum!.trim())
+      if (n < fromNum) return false
+      return match.kickoffTime.getTime() <= now.getTime()
+    })
+    if (activeMatches.length === 0) continue
 
-    if (outcome.winnerId && outcome.payout > 0) {
-      userWinnings[outcome.winnerId] = (userWinnings[outcome.winnerId] ?? 0) + outcome.payout
+    for (const match of activeMatches) {
+      const matchNum = match.matchNum!.trim()
+      const contribution = jackpotContribution(match.stage)
+      pot += contribution
+      events.push({ type: 'contribution', matchNum, amount: contribution, potAfter: pot })
+    }
+
+    const finishedMatches = activeMatches.filter(
+      (match) =>
+        match.actual.isFinished &&
+        match.actual.homeScore != null &&
+        match.actual.awayScore != null
+    )
+    if (finishedMatches.length !== activeMatches.length) continue
+
+    const outcome = applyJackpotBatchSettlement({
+      pot,
+      matches: finishedMatches.map((match) => ({
+        matchNum: match.matchNum!.trim(),
+        winnerUserIds: jackpotWinnersFromPredictions(match.stage, match.actual, match.predictions),
+      })),
+    })
+
+    for (const payout of outcome.payouts) {
+      userWinnings[payout.userId] = (userWinnings[payout.userId] ?? 0) + payout.amount
       events.push({
         type: 'payout',
-        matchNum,
-        userId: outcome.winnerId,
-        amount: outcome.payout,
+        matchNum: payout.matchNum,
+        userId: payout.userId,
+        amount: payout.amount,
       })
-    } else {
+    }
+
+    for (const rollover of outcome.rollovers) {
       events.push({
         type: 'rollover',
-        matchNum,
+        matchNum: rollover.matchNum,
         potAfter: outcome.pot,
-        winnerCount: winnerUserIds.length,
+        winnerCount: rollover.winnerCount,
       })
     }
 
