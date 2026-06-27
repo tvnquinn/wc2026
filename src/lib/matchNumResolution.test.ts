@@ -2,17 +2,28 @@ import { describe, expect, it } from 'vitest'
 import { resolveMatchNumById } from './matchNumResolution'
 import type { ScheduleRow } from './seedMatches'
 
-function dbRow(id: string, matchNum: string | null, kickoff: string) {
-  return { id, matchNum, kickoffTime: new Date(kickoff) }
+function dbRow(
+  id: string,
+  matchNum: string | null,
+  kickoff: string,
+  homeTeam?: string,
+  awayTeam?: string
+) {
+  return { id, matchNum, kickoffTime: new Date(kickoff), homeTeam, awayTeam }
 }
 
-function csvRow(matchNum: string, kickoff: string): ScheduleRow {
+function csvRow(
+  matchNum: string,
+  kickoff: string,
+  homeTeam = 'A',
+  awayTeam = 'B'
+): ScheduleRow {
   return {
     id: `csv-${matchNum}`,
     stage: 'GROUP',
     matchNum,
-    homeTeam: 'A',
-    awayTeam: 'B',
+    homeTeam,
+    awayTeam,
     kickoffTime: new Date(kickoff),
     nextMatchId: null,
     nextMatchSlot: null,
@@ -56,5 +67,20 @@ describe('resolveMatchNumById', () => {
     ]
     const resolved = resolveMatchNumById(db, schedule)
     expect(resolved.get('unknown')).toBe('26')
+  })
+
+  it('pairs by team names when kickoff times collide', () => {
+    const kick = '2026-06-27T00:00:00.000Z'
+    const schedule = [
+      csvRow('65', kick, 'Cape Verde', 'Saudi Arabia'),
+      csvRow('66', kick, 'Uruguay', 'Spain'),
+    ]
+    const db = [
+      dbRow('db-u', '65', kick, 'Uruguay', 'Spain'),
+      dbRow('db-c', '66', kick, 'Cape Verde', 'Saudi Arabia'),
+    ]
+    const resolved = resolveMatchNumById(db, schedule)
+    expect(resolved.get('db-u')).toBe('66')
+    expect(resolved.get('db-c')).toBe('65')
   })
 })

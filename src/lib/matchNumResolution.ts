@@ -5,15 +5,35 @@ export type MatchWithKickoff = {
   id: string
   matchNum: string | null
   kickoffTime: Date
+  homeTeam?: string
+  awayTeam?: string
 }
 
-/** Map each DB match id → canonical matchNum from CSV (by stored matchNum or kickoff order). */
+function teamKey(homeTeam?: string, awayTeam?: string): string | null {
+  if (!homeTeam?.trim() || !awayTeam?.trim()) return null
+  return `${homeTeam.trim()}|${awayTeam.trim()}`
+}
+
+function teamsMatch(
+  db: Pick<MatchWithKickoff, 'homeTeam' | 'awayTeam'>,
+  csv: Pick<ScheduleRow, 'homeTeam' | 'awayTeam'>
+): boolean {
+  return teamKey(db.homeTeam, db.awayTeam) === teamKey(csv.homeTeam, csv.awayTeam)
+}
+
+/** Map each DB match id → canonical matchNum from CSV (teams, stored matchNum, or kickoff order). */
 export function resolveMatchNumById(
   dbMatches: MatchWithKickoff[],
   schedule?: ScheduleRow[]
 ): Map<string, string> {
   const canonical = schedule ?? buildMatchScheduleFromCsv()
   const csvByNum = new Map(canonical.map((m) => [m.matchNum, m]))
+  const csvByTeams = new Map<string, ScheduleRow>()
+  for (const row of canonical) {
+    const key = teamKey(row.homeTeam, row.awayTeam)
+    if (key) csvByTeams.set(key, row)
+  }
+
   const csvByKickoff = [...canonical].sort(
     (a, b) => a.kickoffTime.getTime() - b.kickoffTime.getTime()
   )
@@ -22,6 +42,7 @@ export function resolveMatchNumById(
   )
 
   const byId = new Map<string, string>()
+  const usedCsv = new Set<string>()
 
   if (csvByKickoff.length !== dbByKickoff.length) {
     for (const m of dbMatches) {
@@ -30,11 +51,19 @@ export function resolveMatchNumById(
     return byId
   }
 
-  const usedCsv = new Set<string>()
+  for (const db of dbMatches) {
+    const key = teamKey(db.homeTeam, db.awayTeam)
+    const csvRow = key ? csvByTeams.get(key) : undefined
+    if (csvRow && !usedCsv.has(csvRow.matchNum)) {
+      byId.set(db.id, csvRow.matchNum)
+      usedCsv.add(csvRow.matchNum)
+    }
+  }
 
   for (const db of dbByKickoff) {
     const stored = db.matchNum?.trim()
-    if (stored && csvByNum.has(stored)) {
+    if (byId.has(db.id)) continue
+    if (stored && csvByNum.has(stored) && teamsMatch(db, csvByNum.get(stored)!)) {
       byId.set(db.id, stored)
       usedCsv.add(stored)
     }
@@ -52,18 +81,18 @@ export function resolveMatchNumById(
   return byId
 }
 
-/** Persist missing matchNum values from matches.csv (kickoff-order pairing). */
+/** Persist missing or incorrect Match.matchNum from matches.csv. */
 export async function ensureMatchNumsBackfilled(): Promise<void> {
   const dbMatches = await prisma.match.findMany({
-    select: { id: true, matchNum: true, kickoffTime: true },
+    select: { id: true, matchNum: true, kickoffTime: true, homeTeam: true, awayTeam: true },
   })
 
   const resolved = resolveMatchNumById(dbMatches)
   const updates = dbMatches
-    .filter((m) => !m.matchNum?.trim())
     .map((m) => {
       const matchNum = resolved.get(m.id)
-      return matchNum ? { id: m.id, matchNum } : null
+      if (!matchNum || m.matchNum?.trim() === matchNum) return null
+      return { id: m.id, matchNum }
     })
     .filter((row): row is { id: string; matchNum: string } => row != null)
 

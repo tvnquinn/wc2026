@@ -394,6 +394,19 @@ describe('replayJackpot', () => {
       expect(result.userWinnings).toEqual({})
       expect(result.events.filter((event) => event.type === 'payout')).toHaveLength(0)
     })
+
+    it('Uruguay vs Spain: pays solo winner half when Cape Verde same slot has no winner', () => {
+      const kick = new Date('2026-06-27T00:00:00.000Z')
+      const matches = [
+        matchRow('65', 'GROUP', kick, actual(0, 0), []),
+        matchRow('66', 'GROUP', kick, actual(0, 1), [pred('u-tay', 0, 1)]),
+      ]
+
+      const result = replayJackpot(matches, { now: new Date('2026-06-27T12:00:00.000Z') })
+
+      expect(result.userWinnings).toEqual({ 'u-tay': 2 })
+      expect(result.pot).toBe(2)
+    })
   })
 
   describe('lifetime jackpot winnings', () => {
