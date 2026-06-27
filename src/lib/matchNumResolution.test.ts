@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveMatchNumById } from './matchNumResolution'
+import { resolveMatchNumById, matchNumUpdatesNeeded } from './matchNumResolution'
 import type { ScheduleRow } from './seedMatches'
 
 function dbRow(
@@ -82,5 +82,25 @@ describe('resolveMatchNumById', () => {
     const resolved = resolveMatchNumById(db, schedule)
     expect(resolved.get('db-u')).toBe('66')
     expect(resolved.get('db-c')).toBe('65')
+  })
+})
+
+describe('matchNumUpdatesNeeded', () => {
+  it('flags swapped matchNum rows for correction', () => {
+    const kick = '2026-06-27T00:00:00.000Z'
+    const schedule = [
+      csvRow('65', kick, 'Cape Verde', 'Saudi Arabia'),
+      csvRow('66', kick, 'Uruguay', 'Spain'),
+    ]
+    const db = [
+      dbRow('db-u', '65', kick, 'Uruguay', 'Spain'),
+      dbRow('db-c', '66', kick, 'Cape Verde', 'Saudi Arabia'),
+    ]
+    const resolved = resolveMatchNumById(db, schedule)
+    const updates = matchNumUpdatesNeeded(db, resolved)
+    expect(updates).toEqual([
+      { id: 'db-u', matchNum: '66' },
+      { id: 'db-c', matchNum: '65' },
+    ])
   })
 })

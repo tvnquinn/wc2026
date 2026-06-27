@@ -81,6 +81,20 @@ export function resolveMatchNumById(
   return byId
 }
 
+/** Rows whose persisted matchNum should change to match CSV resolution. */
+export function matchNumUpdatesNeeded(
+  dbMatches: MatchWithKickoff[],
+  resolved: Map<string, string>
+): { id: string; matchNum: string }[] {
+  return dbMatches
+    .map((m) => {
+      const matchNum = resolved.get(m.id)
+      if (!matchNum || m.matchNum?.trim() === matchNum) return null
+      return { id: m.id, matchNum }
+    })
+    .filter((row): row is { id: string; matchNum: string } => row != null)
+}
+
 /** Persist missing or incorrect Match.matchNum from matches.csv. */
 export async function ensureMatchNumsBackfilled(): Promise<void> {
   const dbMatches = await prisma.match.findMany({
@@ -88,19 +102,17 @@ export async function ensureMatchNumsBackfilled(): Promise<void> {
   })
 
   const resolved = resolveMatchNumById(dbMatches)
-  const updates = dbMatches
-    .map((m) => {
-      const matchNum = resolved.get(m.id)
-      if (!matchNum || m.matchNum?.trim() === matchNum) return null
-      return { id: m.id, matchNum }
-    })
-    .filter((row): row is { id: string; matchNum: string } => row != null)
+  const updates = matchNumUpdatesNeeded(dbMatches, resolved)
 
   if (updates.length === 0) return
 
-  await prisma.$transaction(
-    updates.map(({ id, matchNum }) =>
-      prisma.match.update({ where: { id }, data: { matchNum } })
-    )
-  )
+  // Two-phase update avoids unique constraint failures when swapping matchNum (e.g. 65 ↔ 66).
+  await prisma.$transaction(async (tx) => {
+    for (const { id } of updates) {
+      await tx.match.update({ where: { id }, data: { matchNum: `__fix__${id}` } })
+    }
+    for (const { id, matchNum } of updates) {
+      await tx.match.update({ where: { id }, data: { matchNum } })
+    }
+  })
 }
