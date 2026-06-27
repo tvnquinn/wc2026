@@ -107,30 +107,45 @@ export function applyJackpotBatchSettlement(input: {
   payouts: Array<{ matchNum: string; userId: string; amount: number }>
   rollovers: Array<{ matchNum: string; amount: number; winnerCount: number }>
 } {
-  const n = input.matches.length
-  if (n === 0) {
+  const matches = input.matches
+  if (matches.length === 0) {
     return { pot: input.pot, payouts: [], rollovers: [] }
+  }
+
+  const soloWinnerMatches = matches.filter((match) => match.winnerUserIds.length === 1)
+  const n = soloWinnerMatches.length
+
+  const payouts: Array<{ matchNum: string; userId: string; amount: number }> = []
+  const rollovers: Array<{ matchNum: string; amount: number; winnerCount: number }> = []
+
+  if (n === 0) {
+    for (const match of matches) {
+      rollovers.push({
+        matchNum: match.matchNum,
+        amount: 0,
+        winnerCount: match.winnerUserIds.length,
+      })
+    }
+    return { pot: input.pot, payouts, rollovers }
   }
 
   const baseSlice = Math.floor(input.pot / n)
   const remainder = input.pot % n
   let pot = remainder
-  const payouts: Array<{ matchNum: string; userId: string; amount: number }> = []
-  const rollovers: Array<{ matchNum: string; amount: number; winnerCount: number }> = []
 
-  for (const match of input.matches) {
-    if (match.winnerUserIds.length === 1) {
+  for (const match of matches) {
+    const winnerCount = match.winnerUserIds.length
+    if (winnerCount === 1) {
       payouts.push({
         matchNum: match.matchNum,
         userId: match.winnerUserIds[0],
         amount: baseSlice,
       })
     } else {
-      pot += baseSlice
       rollovers.push({
         matchNum: match.matchNum,
-        amount: baseSlice,
-        winnerCount: match.winnerUserIds.length,
+        amount: 0,
+        winnerCount,
       })
     }
   }

@@ -191,9 +191,9 @@ describe('applyJackpotBatchSettlement', () => {
       ],
     })
 
-    expect(outcome.pot).toBe(2)
-    expect(outcome.payouts).toEqual([{ matchNum: '25', userId: 'u1', amount: 2 }])
-    expect(outcome.rollovers).toEqual([{ matchNum: '26', amount: 2, winnerCount: 0 }])
+    expect(outcome.pot).toBe(0)
+    expect(outcome.payouts).toEqual([{ matchNum: '25', userId: 'u1', amount: 4 }])
+    expect(outcome.rollovers).toEqual([{ matchNum: '26', amount: 0, winnerCount: 0 }])
   })
 
   it('keeps the whole pot when nobody wins any simultaneous match', () => {
@@ -354,8 +354,8 @@ describe('replayJackpot', () => {
 
       const result = replayJackpot(matches, { now: t(19) })
 
-      expect(result.pot).toBe(2)
-      expect(result.userWinnings).toEqual({ u1: 2 })
+      expect(result.pot).toBe(0)
+      expect(result.userWinnings).toEqual({ u1: 4 })
     })
 
     it('splits the pot when different players win simultaneous matches', () => {
@@ -395,7 +395,7 @@ describe('replayJackpot', () => {
       expect(result.events.filter((event) => event.type === 'payout')).toHaveLength(0)
     })
 
-    it('Uruguay vs Spain: pays solo winner half when Cape Verde same slot has no winner', () => {
+    it('Uruguay vs Spain: solo winner takes whole pot when Cape Verde same slot has no winner', () => {
       const kick = new Date('2026-06-27T00:00:00.000Z')
       const matches = [
         matchRow('65', 'GROUP', kick, actual(0, 0), []),
@@ -404,8 +404,8 @@ describe('replayJackpot', () => {
 
       const result = replayJackpot(matches, { now: new Date('2026-06-27T12:00:00.000Z') })
 
-      expect(result.userWinnings).toEqual({ 'u-tay': 2 })
-      expect(result.pot).toBe(2)
+      expect(result.userWinnings).toEqual({ 'u-tay': 4 })
+      expect(result.pot).toBe(0)
     })
   })
 
