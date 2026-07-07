@@ -7,11 +7,11 @@ import {
 const POINTS: Record<string, { exact: number; correctWinner: number }> = {
   GROUP: { exact: 3, correctWinner: 1 },
   R32: { exact: 6, correctWinner: 2 },
-  R16: { exact: 9, correctWinner: 3 },
-  QF: { exact: 12, correctWinner: 4 },
-  SF: { exact: 15, correctWinner: 5 },
-  THIRD: { exact: 15, correctWinner: 5 },
-  FINAL: { exact: 21, correctWinner: 7 },
+  R16: { exact: 12, correctWinner: 4 },
+  QF: { exact: 24, correctWinner: 8 },
+  SF: { exact: 48, correctWinner: 16 },
+  THIRD: { exact: 48, correctWinner: 16 },
+  FINAL: { exact: 96, correctWinner: 32 },
 }
 
 export function computePredictionPoints(

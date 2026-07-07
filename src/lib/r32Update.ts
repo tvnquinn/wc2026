@@ -15,6 +15,7 @@ type R32DbMatch = {
   homeTeam: string
   awayTeam: string
   kickoffTime: Date
+  isFinished: boolean
 }
 
 export function resolveR32TeamName(
@@ -65,13 +66,27 @@ export async function updateR32TeamsFromGroupStage() {
   await normalizePlayoffPlaceholderTeamNames()
 
   const csvR32 = getCanonicalR32Schedule()
-  const r32Matches = await prisma.match.findMany({ where: { stage: 'R32' } })
+  const r32Matches = await prisma.match.findMany({
+    where: { stage: 'R32' },
+    select: {
+      id: true,
+      matchNum: true,
+      homeTeam: true,
+      awayTeam: true,
+      kickoffTime: true,
+      isFinished: true,
+    },
+  })
   const groupMatches = await prisma.match.findMany({ where: { stage: 'GROUP' } })
 
   const groupStageComplete = isGroupStageComplete(groupMatches)
   const standingsByGroup = groupStageComplete ? buildAllGroupStandings(groupMatches) : null
 
   for (const { db, canonical } of pairR32WithCanonical(r32Matches, csvR32)) {
+    // Do not rename teams once a knockout match has a final result — avoids
+    // overwriting manually corrected or already-played fixtures.
+    if (db.isFinished) continue
+
     const homeTeam = resolveR32TeamName(canonical.homeTeam, standingsByGroup)
     const awayTeam = resolveR32TeamName(canonical.awayTeam, standingsByGroup)
 

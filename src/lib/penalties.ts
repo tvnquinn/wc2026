@@ -2,11 +2,11 @@ export const KNOCKOUT_STAGES = ['R32', 'R16', 'QF', 'SF', 'THIRD', 'FINAL'] as c
 
 export const PENALTY_BONUS: Record<string, number> = {
   R32: 4,
-  R16: 6,
-  QF: 8,
-  SF: 10,
-  THIRD: 10,
-  FINAL: 14,
+  R16: 8,
+  QF: 16,
+  SF: 32,
+  THIRD: 32,
+  FINAL: 64,
 }
 
 export function isKnockoutStage(stage: string): boolean {

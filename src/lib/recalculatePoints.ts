@@ -64,3 +64,20 @@ export async function recalculatePointsForMatch(matchId: string, stage: string) 
     })
   }
 }
+
+const R16_AND_ABOVE = ['R16', 'QF', 'SF', 'THIRD', 'FINAL'] as const
+
+/** Recompute stored points for finished matches in the given stages only. */
+export async function recalculatePointsForStages(stages: readonly string[] = R16_AND_ABOVE) {
+  const matches = await prisma.match.findMany({
+    where: { stage: { in: [...stages] }, isFinished: true },
+    select: { id: true, stage: true },
+    orderBy: { kickoffTime: 'asc' },
+  })
+
+  for (const match of matches) {
+    await recalculatePointsForMatch(match.id, match.stage)
+  }
+
+  return { matchCount: matches.length, stages: [...stages] }
+}

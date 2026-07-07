@@ -52,11 +52,11 @@ describe('jackpotContribution', () => {
   it.each([
     ['GROUP', 2],
     ['R32', 4],
-    ['R16', 6],
-    ['QF', 8],
-    ['SF', 10],
-    ['THIRD', 10],
-    ['FINAL', 12],
+    ['R16', 8],
+    ['QF', 16],
+    ['SF', 32],
+    ['THIRD', 32],
+    ['FINAL', 64],
     ['UNKNOWN', 0],
     ['', 0],
   ] as const)('returns %i for stage %s', (stage, expected) => {
@@ -96,6 +96,11 @@ describe('isJackpotWin', () => {
       ['R16', actual(3, 0), pred('u1', 3, 0), true],
     ] as const)('knockout without shootout', (stage, matchActual, prediction, expected) => {
       expect(isJackpotWin(stage, matchActual, prediction)).toBe(expected)
+    })
+
+    it('requires exact regulation score, not just correct outcome', () => {
+      expect(isJackpotWin('R32', actual(2, 1), pred('u1', 3, 0))).toBe(false)
+      expect(isJackpotWin('GROUP', actual(1, 1), pred('u1', 0, 0))).toBe(false)
     })
   })
 
@@ -423,6 +428,59 @@ describe('replayJackpot', () => {
 
       expect(result.userWinnings).toEqual({ u1: 8 })
       expect(result.pot).toBe(0)
+    })
+  })
+
+  describe('multi-stage pot rollover', () => {
+    const t = (day: number) => new Date(`2026-06-${String(day).padStart(2, '0')}T12:00:00Z`)
+
+    it('carries accumulated GROUP pot into R32 and pays solo winner the full amount', () => {
+      const matches = [
+        matchRow('25', 'GROUP', t(18), actual(2, 1), []),
+        matchRow('26', 'GROUP', t(19), actual(1, 1), []),
+        matchRow('27', 'GROUP', t(20), actual(0, 0), []),
+        matchRow('73', 'R32', t(30), actual(2, 1), [pred('u1', 2, 1)]),
+      ]
+
+      const result = replayJackpot(matches, { now: t(31) })
+
+      expect(result.userWinnings).toEqual({ u1: 10 })
+      expect(result.pot).toBe(0)
+      expect(result.events).toContainEqual({
+        type: 'contribution',
+        matchNum: '73',
+        amount: 4,
+        potAfter: 10,
+      })
+      expect(result.events).toContainEqual({
+        type: 'payout',
+        matchNum: '73',
+        userId: 'u1',
+        amount: 10,
+      })
+    })
+
+    it('accumulates across three consecutive rollovers then pays out on the fourth match', () => {
+      const matches = [
+        matchRow('25', 'GROUP', t(18), actual(2, 1), []),
+        matchRow('26', 'GROUP', t(19), actual(1, 1), []),
+        matchRow('27', 'GROUP', t(20), actual(0, 0), []),
+        matchRow('28', 'GROUP', t(21), actual(3, 2), [pred('u1', 3, 2)]),
+      ]
+
+      const result = replayJackpot(matches, { now: t(22) })
+
+      expect(result.pot).toBe(0)
+      expect(result.userWinnings).toEqual({ u1: 8 })
+      expect(result.events.filter((event) => event.type === 'rollover')).toHaveLength(3)
+      expect(result.events[0]).toEqual({ type: 'contribution', matchNum: '25', amount: 2, potAfter: 2 })
+      expect(result.events[1]).toEqual({ type: 'rollover', matchNum: '25', potAfter: 2, winnerCount: 0 })
+      expect(result.events[2]).toEqual({ type: 'contribution', matchNum: '26', amount: 2, potAfter: 4 })
+      expect(result.events[3]).toEqual({ type: 'rollover', matchNum: '26', potAfter: 4, winnerCount: 0 })
+      expect(result.events[4]).toEqual({ type: 'contribution', matchNum: '27', amount: 2, potAfter: 6 })
+      expect(result.events[5]).toEqual({ type: 'rollover', matchNum: '27', potAfter: 6, winnerCount: 0 })
+      expect(result.events[6]).toEqual({ type: 'contribution', matchNum: '28', amount: 2, potAfter: 8 })
+      expect(result.events[7]).toEqual({ type: 'payout', matchNum: '28', userId: 'u1', amount: 8 })
     })
   })
 })

@@ -48,8 +48,8 @@ test.describe('predict → submit → leaderboard', () => {
     await expect(adminFirstMatch).toBeVisible({ timeout: 15_000 })
     await adminFirstMatch.getByLabel(`${homeTeam} score`).fill('2')
     await adminFirstMatch.getByLabel(`${awayTeam} score`).fill('1')
-    await page.getByRole('button', { name: '💾 Save All Results' }).click()
-    await expect(page.getByRole('button', { name: '✓ All Results Saved' })).toBeVisible({
+    await adminFirstMatch.getByRole('button', { name: 'Save result' }).click()
+    await expect(adminFirstMatch.getByRole('button', { name: '✓ Saved' })).toBeVisible({
       timeout: 15_000,
     })
 

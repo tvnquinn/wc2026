@@ -37,6 +37,7 @@ import {
   recalculateJackpotForAllLeagues,
   recalculateJackpotForLeague,
 } from '@/lib/recalculateJackpot'
+import { fixUserPrediction } from '@/lib/adminFixPrediction'
 import { seedGlobalMatches } from '@/lib/seedMatches'
 
 type PredictionInput = {
@@ -583,5 +584,28 @@ export async function clearAllMatchResults(leagueSlug: string) {
   revalidatePath('/')
 
   return { success: true as const }
+}
+
+/** Admin override for a locked prediction (e.g. user couldn't save before kickoff). */
+export async function adminFixUserPrediction(
+  leagueSlug: string,
+  userName: string,
+  matchNum: number,
+  homeScore: number,
+  awayScore: number
+) {
+  const league = await getLeagueBySlug(leagueSlug)
+  await requireAdminSession(league.id)
+
+  const result = await fixUserPrediction({
+    leagueId: league.id,
+    userName: userName.trim(),
+    matchNum,
+    homeScore,
+    awayScore,
+  })
+
+  revalidateLeague(league.slug)
+  return result
 }
 

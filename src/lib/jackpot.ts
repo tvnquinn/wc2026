@@ -5,11 +5,11 @@ export const JACKPOT_START_MATCH_NUM = '25'
 export const JACKPOT_CONTRIBUTION: Record<string, number> = {
   GROUP: 2,
   R32: 4,
-  R16: 6,
-  QF: 8,
-  SF: 10,
-  THIRD: 10,
-  FINAL: 12,
+  R16: 8,
+  QF: 16,
+  SF: 32,
+  THIRD: 32,
+  FINAL: 64,
 }
 
 export type JackpotActual = {

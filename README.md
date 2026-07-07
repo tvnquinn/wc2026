@@ -42,11 +42,11 @@ For each match, you earn **either** the exact-score bonus **or** the correct-out
 |-------|-------------|------------------------|
 | Group stage | 3 pts | 1 pt |
 | Round of 32 | 6 pts | 2 pts |
-| Round of 16 | 9 pts | 3 pts |
-| Quarter-final | 12 pts | 4 pts |
-| Semi-final | 15 pts | 5 pts |
-| Third-place match | 15 pts | 5 pts |
-| Final | 21 pts | 7 pts |
+| Round of 16 | 12 pts | 4 pts |
+| Quarter-final | 24 pts | 8 pts |
+| Semi-final | 48 pts | 16 pts |
+| Third-place match | 48 pts | 16 pts |
+| Final | 96 pts | 32 pts |
 
 - **Exact score** — your predicted home and away goals match the official result after 90 minutes (plus stoppage time) exactly.
 - **Correct outcome** — you got the result right (home win, away win, or draw) but not the exact score.
@@ -62,10 +62,10 @@ For each match, you earn **either** the exact-score bonus **or** the correct-out
 | Round | Penalty bonus |
 |-------|---------------|
 | Round of 32 | 4 pts |
-| Round of 16 | 6 pts |
-| Quarter-final | 8 pts |
-| Semi-final / Third-place | 10 pts |
-| Final | 14 pts |
+| Round of 16 | 8 pts |
+| Quarter-final | 16 pts |
+| Semi-final / Third-place | 32 pts |
+| Final | 64 pts |
 
 ## Routes
 

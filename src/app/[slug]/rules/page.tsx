@@ -35,11 +35,11 @@ export default function RulesPage() {
           <tbody>
             <tr><td>Group stage</td><td>3 pts</td><td>1 pt</td></tr>
             <tr><td>Round of 32</td><td>6 pts</td><td>2 pts</td></tr>
-            <tr><td>Round of 16</td><td>9 pts</td><td>3 pts</td></tr>
-            <tr><td>Quarter-final</td><td>12 pts</td><td>4 pts</td></tr>
-            <tr><td>Semi-final</td><td>15 pts</td><td>5 pts</td></tr>
-            <tr><td>Third-place match</td><td>15 pts</td><td>5 pts</td></tr>
-            <tr><td>Final</td><td>21 pts</td><td>7 pts</td></tr>
+            <tr><td>Round of 16</td><td>12 pts</td><td>4 pts</td></tr>
+            <tr><td>Quarter-final</td><td>24 pts</td><td>8 pts</td></tr>
+            <tr><td>Semi-final</td><td>48 pts</td><td>16 pts</td></tr>
+            <tr><td>Third-place match</td><td>48 pts</td><td>16 pts</td></tr>
+            <tr><td>Final</td><td>96 pts</td><td>32 pts</td></tr>
           </tbody>
         </table>
         <p><strong>Exact score:</strong> your predicted home and away goals match the official result after 90 minutes (plus stoppage time) exactly.</p>
@@ -73,11 +73,11 @@ export default function RulesPage() {
           <tbody>
             <tr><td>Group stage</td><td>2 pts</td></tr>
             <tr><td>Round of 32</td><td>4 pts</td></tr>
-            <tr><td>Round of 16</td><td>6 pts</td></tr>
-            <tr><td>Quarter-final</td><td>8 pts</td></tr>
-            <tr><td>Semi-final</td><td>10 pts</td></tr>
-            <tr><td>Third-place match</td><td>10 pts</td></tr>
-            <tr><td>Final</td><td>12 pts</td></tr>
+            <tr><td>Round of 16</td><td>8 pts</td></tr>
+            <tr><td>Quarter-final</td><td>16 pts</td></tr>
+            <tr><td>Semi-final</td><td>32 pts</td></tr>
+            <tr><td>Third-place match</td><td>32 pts</td></tr>
+            <tr><td>Final</td><td>64 pts</td></tr>
           </tbody>
         </table>
         <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>Claiming the pot</h3>
@@ -145,10 +145,10 @@ export default function RulesPage() {
           </thead>
           <tbody>
             <tr><td>Round of 32</td><td>4 pts</td></tr>
-            <tr><td>Round of 16</td><td>6 pts</td></tr>
-            <tr><td>Quarter-final</td><td>8 pts</td></tr>
-            <tr><td>Semi-final / Third-place</td><td>10 pts</td></tr>
-            <tr><td>Final</td><td>14 pts</td></tr>
+            <tr><td>Round of 16</td><td>8 pts</td></tr>
+            <tr><td>Quarter-final</td><td>16 pts</td></tr>
+            <tr><td>Semi-final / Third-place</td><td>32 pts</td></tr>
+            <tr><td>Final</td><td>64 pts</td></tr>
           </tbody>
         </table>
       </div>

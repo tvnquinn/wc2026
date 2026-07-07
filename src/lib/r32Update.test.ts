@@ -24,6 +24,7 @@ describe('pairR32WithCanonical', () => {
       homeTeam: 'Mexico',
       awayTeam: 'Canada',
       kickoffTime: row.kickoffTime,
+      isFinished: false,
     }))
 
     const pairs = pairR32WithCanonical(db, csv)
